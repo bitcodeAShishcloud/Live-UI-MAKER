@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Live Code Compiler Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #252526;
+            --bg-tertiary: #2d2d2d;
+            --border-color: #3c3c3c;
+            --text-primary: #cccccc;
+            --text-secondary: #858585;
+            --accent: #007acc;
+            --accent-hover: #0098ff;
+            --success: #4caf50;
+            --warning: #ff9800;
+            --error: #f44336;
+            --html-color: #e44d26;
+            --css-color: #264de4;
+            --js-color: #f7df1e;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            height: 50px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .logo i { color: var(--accent); }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover { background: var(--accent-hover); }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover { background: var(--border-color); }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Container */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 50px);
+        }
+
+        /* Sidebar - File Tabs */
+        .sidebar {
+            width: 250px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 12px 16px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+        }
+
+        .file-tabs {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .file-tab {
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+            gap: 10px;
+        }
+
+        .file-tab:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .file-tab.active {
+            background: var(--bg-tertiary);
+            border-left-color: var(--accent);
+        }
+
+        .file-tab i {
+            font-size: 1rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .file-tab .html-icon { color: var(--html-color); }
+        .file-tab .css-icon { color: var(--css-color); }
+        .file-tab .js-icon { color: var(--js-color); }
+
+        .file-tab .file-name {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        .file-tab .close-tab {
+            opacity: 0;
+            padding: 4px;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+
+        .file-tab:hover .close-tab {
+            opacity: 1;
+        }
+
+        .file-tab .close-tab:hover {
+            background: var(--error);
+            color: white;
+        }
+
+        .add-file-btn {
+            padding: 10px 16px;
+            border-top: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .add-file-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        /* Editor Area */
+        .editor-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-tabs {
+            display: flex;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            overflow-x: auto;
+        }
+
+        .editor-tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .editor-tab:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .editor-tab.active {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--accent);
+        }
+
+        .editor-tab i {
+            font-size: 1rem;
+        }
+
+        .editor-content {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .code-editor {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+
+        .code-editor.active {
+            display: block;
+        }
+
+        .code-editor textarea {
+            width: 100%;
+            height: 100%;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: none;
+            padding: 20px;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            tab-size: 2;
+        }
+
+        .line-numbers {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 50px;
+            height: 100%;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 20px 10px;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            text-align: right;
+            user-select: none;
+        }
+
+        .editor-wrapper {
+            position: relative;
+            height: 100%;
+            padding-left: 50px;
+        }
+
+        /* Preview & Console */
+        .preview-area {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid var(--border-color);
+        }
+
+        .preview-header {
+            height: 40px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+        }
+
+        .preview-title {
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .preview-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .preview-actions button {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .preview-actions button:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .preview-frame {
+            flex: 1;
+            background: white;
+            border: none;
+        }
+
+        /* Console Panel */
+        .console-panel {
+            height: 200px;
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: height 0.3s ease;
+        }
+
+        .console-panel.collapsed {
+            height: 0;
+            overflow: hidden;
+        }
+
+        .console-header {
+            height: 35px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+        }
+
+        .console-title {
+            font-size: 0.8rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .console-title i { color: var(--warning); }
+
+        .console-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .console-toggle:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .console-output {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+        }
+
+        .console-log {
+            padding: 4px 8px;
+            margin: 2px 0;
+            border-radius: 3px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .console-log.log {
+            background: rgba(76, 175, 80, 0.1);
+            border-left: 3px solid var(--success);
+        }
+
+        .console-log.warn {
+            background: rgba(255, 152, 0, 0.1);
+            border-left: 3px solid var(--warning);
+        }
+
+        .console-log.error {
+            background: rgba(244, 67, 54, 0.1);
+            border-left: 3px solid var(--error);
+        }
+
+        .console-log .timestamp {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+
+        .console-clear {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 3px;
+        }
+
+        .console-clear:hover {
+            background: var(--bg-tertiary);
+        }
+
+        /* Resizer */
+        .resizer {
+            width: 5px;
+            background: var(--border-color);
+            cursor: col-resize;
+            transition: background 0.2s;
+        }
+
+        .resizer:hover {
+            background: var(--accent);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            width: 400px;
+            max-width: 90%;
+        }
+
+        .modal h3 {
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+        }
+
+        .modal input, .modal select {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+        }
+
+        .modal input:focus, .modal select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        /* Auto-run indicator */
+        .auto-run-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: var(--success);
+            padding: 4px 10px;
+            background: rgba(76, 175, 80, 0.1);
+            border-radius: 4px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+            }
+            
+            .file-tab .file-name,
+            .sidebar-header,
+            .add-file-btn span {
+                display: none;
+            }
+            
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .preview-area {
+                width: 100%;
+                height: 50%;
+            }
+            
+            .editor-area {
+                height: 50%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <i class="fas fa-bolt"></i>
+            <span>Live Compiler Pro</span>
+        </div>
+        
+        <div class="status-indicator">
+            <div class="status-dot"></div>
+            <span>Auto-run: 1s</span>
+            <div class="auto-run-indicator">
+                <i class="fas fa-play"></i>
+                <span>Running</span>
+            </div>
+        </div>
+        
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="clearAll()">
+                <i class="fas fa-trash"></i>
+                Clear
+            </button>
+            <button class="btn btn-primary" onclick="runCode()">
+                <i class="fas fa-play"></i>
+                Run
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-folder"></i> Explorer
+            </div>
+            <div class="file-tabs" id="fileTabs">
+                <!-- File tabs will be generated here -->
+            </div>
+            <button class="add-file-btn" onclick="openAddFileModal()">
+                <i class="fas fa-plus"></i>
+                <span>New File</span>
+            </button>
+        </aside>
+
+        <!-- Editor Area -->
+        <div class="editor-area">
+            <div class="editor-tabs" id="editorTabs">
+                <!-- Editor tabs will be generated here -->
+            </div>
+            <div class="editor-content" id="editorContent">
+                <!-- Code editors will be generated here -->
+            </div>
+        </div>
+
+        <!-- Resizer -->
+        <div class="resizer" id="resizer"></div>
+
+        <!-- Preview Area -->
+        <div class="preview-area" id="previewArea">
+            <div class="preview-header">
+                <div class="preview-title">
+                    <i class="fas fa-eye"></i>
+                    <span>Preview</span>
+                </div>
+                <div class="preview-actions">
+                    <button onclick="refreshPreview()" title="Refresh">
+                        <i class="fas fa-sync"></i>
+                    </button>
+                    <button onclick="openInNewTab()" title="Open in New Tab">
+                        <i class="fas fa-external-link-alt"></i>
+                    </button>
+                    <button onclick="toggleConsole()" title="Toggle Console">
+                        <i class="fas fa-terminal"></i>
+                    </button>
+                </div>
+            </div>
+            <iframe class="preview-frame" id="previewFrame"></iframe>
+            
+            <!-- Console Panel -->
+            <div class="console-panel" id="consolePanel">
+                <div class="console-header">
+                    <div class="console-title">
+                        <i class="fas fa-terminal"></i>
+                        <span>Console</span>
+                    </div>
+                    <div>
+                        <button class="console-clear" onclick="clearConsole()">
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
+                        <button class="console-toggle" onclick="toggleConsole()">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="console-output" id="consoleOutput">
+                    <!-- Console logs will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add File Modal -->
+    <div class="modal-overlay" id="addFileModal">
+        <div class="modal">
+            <h3><i class="fas fa-file"></i> Create New File</h3>
+            <input type="text" id="newFileName" placeholder="filename.html">
+            <select id="newFileType">
+                <option value="html">HTML</option>
+                <option value="css">CSS</option>
+                <option value="js">JavaScript</option>
+            </select>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeAddFileModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="createNewFile()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== STATE MANAGEMENT ====================
+        const state = {
+            files: [
+                { id: 1, name: 'index.html', type: 'html', content: '<h1>Hello World!</h1>\n<p>Welcome to Live Compiler Pro</p>\n<button onclick="sayHello()">Click Me</button>' },
+                { id: 2, name: 'styles.css', type: 'css', content: 'body {\n    font-family: Arial, sans-serif;\n    padding: 20px;\n    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n    color: white;\n}\n\nh1 {\n    font-size: 2.5rem;\n    margin-bottom: 10px;\n}\n\nbutton {\n    padding: 10px 20px;\n    background: white;\n    color: #667eea;\n    border: none;\n    border-radius: 5px;\n    cursor: pointer;\n    font-size: 1rem;\n}\n\nbutton:hover {\n    transform: scale(1.05);\n}' },
+                { id: 3, name: 'script.js', type: 'js', content: 'function sayHello() {\n    console.log("Hello from Live Compiler!");\n    alert("Welcome! 🚀");\n}\n\nconsole.log("Script loaded successfully");\nconsole.warn("This is a warning");\nconsole.error("This is an error");' }
+            ],
+            activeFileId: 1,
+            consoleVisible: true,
+            autoRun: true,
+            autoRunInterval: null
+        };
+
+        // ==================== DOM ELEMENTS ====================
+        const fileTabsContainer = document.getElementById('fileTabs');
+        const editorTabsContainer = document.getElementById('editorTabs');
+        const editorContent = document.getElementById('editorContent');
+        const previewFrame = document.getElementById('previewFrame');
+        const consoleOutput = document.getElementById('consoleOutput');
+        const consolePanel = document.getElementById('consolePanel');
+        const addFileModal = document.getElementById('addFileModal');
+
+        // ==================== INITIALIZATION ====================
+        function init() {
+            renderFileTabs();
+            renderEditorTabs();
+            renderEditors();
+            setupAutoRun();
+            setupConsoleIntercept();
+            updatePreview();
+            setupResizer();
+        }
+
+        // ==================== FILE TABS ====================
+        function renderFileTabs() {
+            fileTabsContainer.innerHTML = state.files.map(file => `
+                <div class="file-tab ${file.id === state.activeFileId ? 'active' : ''}" 
+                     onclick="switchFile(${file.id})">
+                    <i class="fas ${getFileIcon(file.type)} ${file.type}-icon"></i>
+                    <span class="file-name">${file.name}</span>
+                    <i class="fas fa-times close-tab" onclick="event.stopPropagation(); deleteFile(${file.id})"></i>
+                </div>
+            `).join('');
+        }
+
+        function getFileIcon(type) {
+            const icons = {
+                html: 'fa-html5',
+                css: 'fa-css3-alt',
+                js: 'fa-js'
+            };
+            return icons[type] || 'fa-file';
+        }
+
+        // ==================== EDITOR TABS ====================
+        function renderEditorTabs() {
+            editorTabsContainer.innerHTML = state.files.map(file => `
+                <div class="editor-tab ${file.id === state.activeFileId ? 'active' : ''}" 
+                     onclick="switchFile(${file.id})">
+                    <i class="fas ${getFileIcon(file.type)} ${file.type}-icon"></i>
+                    <span>${file.name}</span>
+                </div>
+            `).join('');
+        }
+
+        // ==================== EDITORS ====================
+        function renderEditors() {
+            editorContent.innerHTML = state.files.map(file => `
+                <div class="code-editor ${file.id === state.activeFileId ? 'active' : ''}" 
+                     id="editor-${file.id}">
+                    <div class="editor-wrapper">
+                        <div class="line-numbers" id="lines-${file.id}"></div>
+                        <textarea id="code-${file.id}" 
+                                  oninput="updateLineNumbers(${file.id}); onCodeChange(${file.id})"
+                                  onscroll="syncScroll(${file.id})"
+                                  spellcheck="false">${escapeHtml(file.content)}</textarea>
+                    </div>
+                </div>
+            `).join('');
+            
+            state.files.forEach(file => {
+                updateLineNumbers(file.id);
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function updateLineNumbers(fileId) {
+            const textarea = document.getElementById(`code-${fileId}`);
+            const linesDiv = document.getElementById(`lines-${fileId}`);
+            const lines = textarea.value.split('\n').length;
+            linesDiv.innerHTML = Array(lines).fill(0).map((_, i) => i + 1).join('<br>');
+        }
+
+        function syncScroll(fileId) {
+            const textarea = document.getElementById(`code-${fileId}`);
+            const linesDiv = document.getElementById(`lines-${fileId}`);
+            linesDiv.scrollTop = textarea.scrollTop;
+        }
+
+        // ==================== FILE OPERATIONS ====================
+        function switchFile(fileId) {
+            state.activeFileId = fileId;
+            renderFileTabs();
+            renderEditorTabs();
+            renderEditors();
+        }
+
+        function deleteFile(fileId) {
+            if (state.files.length <= 1) {
+                alert('Cannot delete the last file!');
+                return;
+            }
+            if (confirm('Are you sure you want to delete this file?')) {
+                state.files = state.files.filter(f => f.id !== fileId);
+                if (state.activeFileId === fileId) {
+                    state.activeFileId = state.files[0].id;
+                }
+                renderFileTabs();
+                renderEditorTabs();
+                renderEditors();
+                updatePreview();
+            }
+        }
+
+        function openAddFileModal() {
+            addFileModal.classList.add('active');
+            document.getElementById('newFileName').focus();
+        }
+
+        function closeAddFileModal() {
+            addFileModal.classList.remove('active');
+            document.getElementById('newFileName').value = '';
+        }
+
+        function createNewFile() {
+            const nameInput = document.getElementById('newFileName');
+            const typeSelect = document.getElementById('newFileType');
+            let fileName = nameInput.value.trim();
+            const fileType = typeSelect.value;
+
+            if (!fileName) {
+                alert('Please enter a file name');
+                return;
+            }
+
+            if (!fileName.includes('.')) {
+                fileName = `${fileName}.${fileType}`;
+            }
+
+            const newFile = {
+                id: Date.now(),
+                name: fileName,
+                type: fileType,
+                content: getDefaultContent(fileType)
+            };
+
+            state.files.push(newFile);
+            state.activeFileId = newFile.id;
+            
+            closeAddFileModal();
+            renderFileTabs();
+            renderEditorTabs();
+            renderEditors();
+            updatePreview();
+        }
+
+        function getDefaultContent(type) {
+            const defaults = {
+                html: '<!-- Your HTML here -->\n',
+                css: '/* Your CSS here */\n',
+                js: '// Your JavaScript here\n'
+            };
+            return defaults[type] || '';
+        }
+
+        // ==================== CODE COMPILATION ====================
+        let debounceTimer = null;
+
+        function onCodeChange(fileId) {
+            const file = state.files.find(f => f.id === fileId);
+            if (file) {
+                file.content = document.getElementById(`code-${fileId}`).value;
+            }
+
+            // Debounce - wait 1 second after last keystroke
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                if (state.autoRun) {
+                    updatePreview();
+                }
+            }, 1000);
+        }
+
+        function updatePreview() {
+            const htmlFile = state.files.find(f => f.type === 'html');
+            const cssFiles = state.files.filter(f => f.type === 'css');
+            const jsFiles = state.files.filter(f => f.type === 'js');
+
+            let html = htmlFile ? htmlFile.content : '';
+            let css = cssFiles.map(f => f.content).join('\n');
+            let js = jsFiles.map(f => f.content).join('\n');
+
+            const source = `
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <style>${css}</style>
+                    </head>
+                    <body>
+                        ${html}
+                        <script>
+                            // Intercept console methods
+                            const originalLog = console.log;
+                            const originalWarn = console.warn;
+                            const originalError = console.error;
+                            
+                            console.log = function(...args) {
+                                window.parent.postMessage({type: 'console', level: 'log', args: args}, '*');
+                                originalLog.apply(console, args);
+                            };
+                            
+                            console.warn = function(...args) {
+                                window.parent.postMessage({type: 'console', level: 'warn', args: args}, '*');
+                                originalWarn.apply(console, args);
+                            };
+                            
+                            console.error = function(...args) {
+                                window.parent.postMessage({type: 'console', level: 'error', args: args}, '*');
+                                originalError.apply(console, args);
+                            };
+                            
+                            // Error handler
+                            window.onerror = function(msg, url, line) {
+                                window.parent.postMessage({type: 'console', level: 'error', args: [msg + ' (Line: ' + line + ')']}, '*');
+                            };
+                            
+                            ${js}
+                        <\/script>
+                    </body>
+                </html>
+            `;
+
+            const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+            doc.open();
+            doc.write(source);
+            doc.close();
+
+            showStatus('Compiled!', 'success');
+        }
+
+        function runCode() {
+            updatePreview();
+            showStatus('Running...', 'success');
+        }
+
+        function refreshPreview() {
+            updatePreview();
+        }
+
+        function openInNewTab() {
+            const htmlFile = state.files.find(f => f.type === 'html');
+            const cssFiles = state.files.filter(f => f.type === 'css');
+            const jsFiles = state.files.filter(f => f.type === 'js');
+
+            let html = htmlFile ? htmlFile.content : '';
+            let css = cssFiles.map(f => f.content).join('\n');
+            let js = jsFiles.map(f => f.content).join('\n');
+
+            const source = `
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <style>${css}</style>
+                    </head>
+                    <body>
+                        ${html}
+                        <script>${js}<\/script>
+                    </body>
+                </html>
+            `;
+
+            const blob = new Blob([source], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        }
+
+        // ==================== CONSOLE ====================
+        function setupConsoleIntercept() {
+            window.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'console') {
+                    addConsoleLog(event.data.level, event.data.args);
+                }
+            });
+        }
+
+        function addConsoleLog(level, args) {
+            const timestamp = new Date().toLocaleTimeString();
+            const message = args.map(arg => {
+                if (typeof arg === 'object') {
+                    return JSON.stringify(arg, null, 2);
+                }
+                return String(arg);
+            }).join(' ');
+
+            const logElement = document.createElement('div');
+            logElement.className = `console-log ${level}`;
+            logElement.innerHTML = `
+                <span class="timestamp">[${timestamp}]</span>
+                <span>${escapeHtml(message)}</span>
+            `;
+            
+            consoleOutput.appendChild(logElement);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        function toggleConsole() {
+            state.consoleVisible = !state.consoleVisible;
+            consolePanel.classList.toggle('collapsed', !state.consoleVisible);
+            
+            const icon = consolePanel.querySelector('.console-toggle i');
+            icon.className = state.consoleVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+        }
+
+        function clearConsole() {
+            consoleOutput.innerHTML = '';
+        }
+
+        // ==================== AUTO-RUN ====================
+        function setupAutoRun() {
+            // Auto-run is handled by debounce on code change
+            // This ensures it runs 1 second after user stops typing
+        }
+
+        // ==================== STATUS INDICATOR ====================
+        function showStatus(message, type) {
+            const statusDot = document.querySelector('.status-dot');
+            statusDot.style.background = type === 'success' ? 'var(--success)' : 'var(--warning)';
+            
+            setTimeout(() => {
+                statusDot.style.background = 'var(--success)';
+            }, 2000);
+        }
+
+        // ==================== CLEAR ALL ====================
+        function clearAll() {
+            if (confirm('Are you sure you want to clear all code?')) {
+                state.files.forEach(file => {
+                    file.content = getDefaultContent(file.type);
+                });
+                renderEditors();
+                updatePreview();
+                clearConsole();
+            }
+        }
+
+        // ==================== RESIZER ====================
+        function setupResizer() {
+            const resizer = document.getElementById('resizer');
+            const editorArea = document.querySelector('.editor-area');
+            const previewArea = document.getElementById('previewArea');
+            let isResizing = false;
+
+            resizer.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                document.body.style.cursor = 'col-resize';
+                resizer.style.background = 'var(--accent)';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                
+                const containerWidth = document.querySelector('.main-container').clientWidth;
+                const newEditorWidth = ((e.clientX / containerWidth) * 100);
+                
+                if (newEditorWidth > 20 && newEditorWidth < 80) {
+                    editorArea.style.width = `${newEditorWidth}%`;
+                    previewArea.style.width = `${100 - newEditorWidth}%`;
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                isResizing = false;
+                document.body.style.cursor = 'default';
+                resizer.style.background = 'var(--border-color)';
+            });
+        }
+
+        // ==================== KEYBOARD SHORTCUTS ====================
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + S to run
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                runCode();
+            }
+            
+            // Ctrl/Cmd + Enter to run
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                runCode();
+            }
+            
+            // Escape to close modal
+            if (e.key === 'Escape') {
+                closeAddFileModal();
+            }
+        });
+
+        // ==================== START APPLICATION ====================
+        init();
+    </script>
+</body>
+</html>
