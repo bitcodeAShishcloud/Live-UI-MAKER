@@ -17,6 +17,7 @@
             --bg-primary: #1e1e1e;
             --bg-secondary: #252526;
             --bg-tertiary: #2d2d2d;
+            --bg-hover: #3c3c3c;
             --border-color: #3c3c3c;
             --text-primary: #cccccc;
             --text-secondary: #858585;
@@ -25,9 +26,18 @@
             --success: #4caf50;
             --warning: #ff9800;
             --error: #f44336;
+            --info: #2196f3;
+            /* Language Colors */
             --html-color: #e44d26;
             --css-color: #264de4;
             --js-color: #f7df1e;
+            --python-color: #3776ab;
+            --react-color: #61dafb;
+            --node-color: #339933;
+            --c-color: #555555;
+            --cpp-color: #00599c;
+            --csharp-color: #9b4f96;
+            --java-color: #f89820;
         }
 
         body {
@@ -38,7 +48,7 @@
             overflow: hidden;
         }
 
-        /* Header */
+        /* ==================== HEADER ==================== */
         .header {
             height: 50px;
             background: var(--bg-secondary);
@@ -91,6 +101,21 @@
 
         .btn-secondary:hover { background: var(--border-color); }
 
+        .btn-icon {
+            padding: 8px 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
         .status-indicator {
             display: flex;
             align-items: center;
@@ -112,19 +137,28 @@
             50% { opacity: 0.5; }
         }
 
-        /* Main Container */
+        /* ==================== MAIN CONTAINER ==================== */
         .main-container {
             display: flex;
             height: calc(100vh - 50px);
         }
 
-        /* Sidebar - File Tabs */
+        /* ==================== SIDEBAR (EXPLORER) ==================== */
         .sidebar {
             width: 250px;
             background: var(--bg-secondary);
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
+            transition: width 0.3s ease, transform 0.3s ease;
+            min-width: 250px;
+        }
+
+        .sidebar.collapsed {
+            width: 0;
+            min-width: 0;
+            transform: translateX(-250px);
+            overflow: hidden;
         }
 
         .sidebar-header {
@@ -134,6 +168,20 @@
             text-transform: uppercase;
             color: var(--text-secondary);
             letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-toggle {
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--bg-hover);
         }
 
         .file-tabs {
@@ -141,10 +189,42 @@
             overflow-y: auto;
         }
 
+        .file-section {
+            margin-bottom: 8px;
+        }
+
+        .file-section-header {
+            padding: 8px 16px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .file-section-header i {
+            transition: transform 0.2s;
+        }
+
+        .file-section-header.collapsed i {
+            transform: rotate(-90deg);
+        }
+
+        .file-section-content {
+            display: block;
+        }
+
+        .file-section-content.collapsed {
+            display: none;
+        }
+
         .file-tab {
             display: flex;
             align-items: center;
-            padding: 10px 16px;
+            padding: 8px 16px 8px 24px;
             cursor: pointer;
             border-left: 3px solid transparent;
             transition: all 0.2s;
@@ -166,13 +246,12 @@
             text-align: center;
         }
 
-        .file-tab .html-icon { color: var(--html-color); }
-        .file-tab .css-icon { color: var(--css-color); }
-        .file-tab .js-icon { color: var(--js-color); }
-
         .file-tab .file-name {
             flex: 1;
             font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .file-tab .close-tab {
@@ -202,6 +281,8 @@
             gap: 10px;
             font-size: 0.9rem;
             transition: all 0.2s;
+            width: 100%;
+            text-align: left;
         }
 
         .add-file-btn:hover {
@@ -209,11 +290,37 @@
             color: var(--text-primary);
         }
 
-        /* Editor Area */
+        /* ==================== SIDEBAR TOGGLE BUTTON ==================== */
+        .sidebar-toggle-btn {
+            position: fixed;
+            left: 10px;
+            top: 60px;
+            z-index: 100;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: none;
+        }
+
+        .sidebar-toggle-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .sidebar-toggle-btn.visible {
+            display: block;
+        }
+
+        /* ==================== EDITOR AREA ==================== */
         .editor-area {
             flex: 1;
             display: flex;
             flex-direction: column;
+            min-width: 0;
         }
 
         .editor-tabs {
@@ -235,6 +342,7 @@
             color: var(--text-secondary);
             transition: all 0.2s;
             white-space: nowrap;
+            min-width: 150px;
         }
 
         .editor-tab:hover {
@@ -249,6 +357,22 @@
 
         .editor-tab i {
             font-size: 1rem;
+        }
+
+        .editor-tab .close-editor-tab {
+            margin-left: auto;
+            opacity: 0;
+            padding: 4px;
+            border-radius: 3px;
+        }
+
+        .editor-tab:hover .close-editor-tab {
+            opacity: 1;
+        }
+
+        .editor-tab .close-editor-tab:hover {
+            background: var(--error);
+            color: white;
         }
 
         .editor-content {
@@ -270,50 +394,57 @@
             display: block;
         }
 
-        .code-editor textarea {
-            width: 100%;
+        .editor-wrapper {
+            position: relative;
             height: 100%;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            border: none;
-            padding: 20px;
-            font-family: 'Fira Code', monospace;
-            font-size: 14px;
-            line-height: 1.6;
-            resize: none;
-            outline: none;
-            tab-size: 2;
+            overflow: hidden;
         }
 
         .line-numbers {
             position: absolute;
             left: 0;
             top: 0;
-            width: 50px;
+            width: 55px;
             height: 100%;
             background: var(--bg-secondary);
             border-right: 1px solid var(--border-color);
-            padding: 20px 10px;
+            padding: 15px 10px;
             font-family: 'Fira Code', monospace;
             font-size: 14px;
             line-height: 1.6;
             color: var(--text-secondary);
             text-align: right;
             user-select: none;
+            overflow: hidden;
         }
 
-        .editor-wrapper {
-            position: relative;
+        .code-editor textarea {
+            position: absolute;
+            left: 55px;
+            top: 0;
+            width: calc(100% - 55px);
             height: 100%;
-            padding-left: 50px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: none;
+            padding: 15px 10px;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            tab-size: 4;
+            white-space: pre;
+            overflow: auto;
         }
 
-        /* Preview & Console */
+        /* ==================== PREVIEW AREA ==================== */
         .preview-area {
             width: 50%;
             display: flex;
             flex-direction: column;
             border-left: 1px solid var(--border-color);
+            min-width: 300px;
         }
 
         .preview-header {
@@ -350,7 +481,7 @@
         }
 
         .preview-actions button:hover {
-            background: var(--bg-tertiary);
+            background: var(--bg-hover);
             color: var(--text-primary);
         }
 
@@ -360,7 +491,7 @@
             border: none;
         }
 
-        /* Console Panel */
+        /* ==================== CONSOLE PANEL ==================== */
         .console-panel {
             height: 200px;
             background: var(--bg-primary);
@@ -395,18 +526,24 @@
 
         .console-title i { color: var(--warning); }
 
-        .console-toggle {
+        .console-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .console-actions button {
             background: transparent;
             border: none;
             color: var(--text-secondary);
             cursor: pointer;
-            padding: 6px;
+            padding: 4px 8px;
             border-radius: 4px;
+            font-size: 0.8rem;
             transition: all 0.2s;
         }
 
-        .console-toggle:hover {
-            background: var(--bg-tertiary);
+        .console-actions button:hover {
+            background: var(--bg-hover);
             color: var(--text-primary);
         }
 
@@ -424,6 +561,7 @@
             border-radius: 3px;
             display: flex;
             gap: 10px;
+            word-break: break-all;
         }
 
         .console-log.log {
@@ -441,57 +579,31 @@
             border-left: 3px solid var(--error);
         }
 
+        .console-log.info {
+            background: rgba(33, 150, 243, 0.1);
+            border-left: 3px solid var(--info);
+        }
+
         .console-log .timestamp {
             color: var(--text-secondary);
             font-size: 0.75rem;
+            white-space: nowrap;
         }
 
-        .console-clear {
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 0.8rem;
-            padding: 4px 8px;
-            border-radius: 3px;
-        }
-
-        .console-clear:hover {
-            background: var(--bg-tertiary);
-        }
-
-        /* Resizer */
+        /* ==================== RESIZER ==================== */
         .resizer {
             width: 5px;
             background: var(--border-color);
             cursor: col-resize;
             transition: background 0.2s;
+            flex-shrink: 0;
         }
 
         .resizer:hover {
             background: var(--accent);
         }
 
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 10px;
-            height: 10px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--bg-secondary);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 5px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-secondary);
-        }
-
-        /* Modal */
+        /* ==================== MODAL ==================== */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -514,24 +626,37 @@
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 24px;
-            width: 400px;
+            width: 450px;
             max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .modal h3 {
             margin-bottom: 16px;
             font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
         }
 
         .modal input, .modal select {
             width: 100%;
-            padding: 10px;
+            padding: 10px 12px;
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
             border-radius: 4px;
             color: var(--text-primary);
             font-size: 0.9rem;
             margin-bottom: 16px;
+            font-family: 'Inter', sans-serif;
         }
 
         .modal input:focus, .modal select:focus {
@@ -539,13 +664,72 @@
             border-color: var(--accent);
         }
 
+        .file-type-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .file-type-option {
+            padding: 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-type-option:hover {
+            border-color: var(--accent);
+            background: var(--bg-tertiary);
+        }
+
+        .file-type-option.selected {
+            border-color: var(--accent);
+            background: rgba(0, 122, 204, 0.1);
+        }
+
+        .file-type-option i {
+            font-size: 1.5rem;
+        }
+
+        .file-type-option span {
+            font-size: 0.8rem;
+        }
+
         .modal-actions {
             display: flex;
             gap: 10px;
             justify-content: flex-end;
+            margin-top: 20px;
         }
 
-        /* Auto-run indicator */
+        /* ==================== SCROLLBAR ==================== */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* ==================== AUTO-RUN INDICATOR ==================== */
         .auto-run-indicator {
             display: flex;
             align-items: center;
@@ -557,20 +741,49 @@
             border-radius: 4px;
         }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 60px;
-            }
-            
-            .file-tab .file-name,
-            .sidebar-header,
-            .add-file-btn span {
-                display: none;
-            }
-            
+        /* ==================== TOAST NOTIFICATION ==================== */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1001;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success { border-left: 3px solid var(--success); }
+        .toast.error { border-left: 3px solid var(--error); }
+        .toast.warning { border-left: 3px solid var(--warning); }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 1024px) {
             .main-container {
                 flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 200px;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+            
+            .sidebar.collapsed {
+                height: 0;
+                transform: translateY(-200px);
             }
             
             .preview-area {
@@ -581,6 +794,20 @@
             .editor-area {
                 height: 50%;
             }
+            
+            .resizer {
+                display: none;
+            }
+        }
+
+        /* ==================== LANGUAGE BADGES ==================== */
+        .lang-badge {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: var(--bg-hover);
+            color: var(--text-secondary);
+            margin-left: 5px;
         }
     </style>
 </head>
@@ -597,32 +824,43 @@
             <span>Auto-run: 1s</span>
             <div class="auto-run-indicator">
                 <i class="fas fa-play"></i>
-                <span>Running</span>
+                <span>Active</span>
             </div>
         </div>
         
         <div class="header-actions">
+            <button class="btn-icon" onclick="toggleExplorer()" title="Toggle Explorer (Ctrl+B)">
+                <i class="fas fa-bars"></i>
+            </button>
             <button class="btn btn-secondary" onclick="clearAll()">
                 <i class="fas fa-trash"></i>
-                Clear
+                <span style="margin-left:5px;">Clear</span>
             </button>
             <button class="btn btn-primary" onclick="runCode()">
                 <i class="fas fa-play"></i>
-                Run
+                <span style="margin-left:5px;">Run</span>
             </button>
         </div>
     </header>
 
+    <!-- Sidebar Toggle Button (when sidebar is hidden) -->
+    <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleExplorer()">
+        <i class="fas fa-folder-open"></i>
+    </button>
+
     <!-- Main Container -->
     <div class="main-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
+        <!-- Sidebar (Explorer) -->
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <i class="fas fa-folder"></i> Explorer
+                <span><i class="fas fa-folder"></i> Explorer</span>
+                <i class="fas fa-times sidebar-toggle" onclick="toggleExplorer()" title="Close (Ctrl+B)"></i>
             </div>
+            
             <div class="file-tabs" id="fileTabs">
-                <!-- File tabs will be generated here -->
+                <!-- File sections will be generated here -->
             </div>
+            
             <button class="add-file-btn" onclick="openAddFileModal()">
                 <i class="fas fa-plus"></i>
                 <span>New File</span>
@@ -650,7 +888,7 @@
                     <span>Preview</span>
                 </div>
                 <div class="preview-actions">
-                    <button onclick="refreshPreview()" title="Refresh">
+                    <button onclick="refreshPreview()" title="Refresh (F5)">
                         <i class="fas fa-sync"></i>
                     </button>
                     <button onclick="openInNewTab()" title="Open in New Tab">
@@ -670,12 +908,12 @@
                         <i class="fas fa-terminal"></i>
                         <span>Console</span>
                     </div>
-                    <div>
-                        <button class="console-clear" onclick="clearConsole()">
+                    <div class="console-actions">
+                        <button onclick="clearConsole()">
                             <i class="fas fa-trash"></i> Clear
                         </button>
-                        <button class="console-toggle" onclick="toggleConsole()">
-                            <i class="fas fa-chevron-down"></i>
+                        <button onclick="toggleConsole()">
+                            <i class="fas fa-chevron-down" id="consoleToggleIcon"></i>
                         </button>
                     </div>
                 </div>
@@ -689,32 +927,121 @@
     <!-- Add File Modal -->
     <div class="modal-overlay" id="addFileModal">
         <div class="modal">
-            <h3><i class="fas fa-file"></i> Create New File</h3>
-            <input type="text" id="newFileName" placeholder="filename.html">
-            <select id="newFileType">
-                <option value="html">HTML</option>
-                <option value="css">CSS</option>
-                <option value="js">JavaScript</option>
-            </select>
+            <h3><i class="fas fa-file-circle-plus"></i> Create New File</h3>
+            
+            <label>File Name</label>
+            <input type="text" id="newFileName" placeholder="e.g., app, script, main">
+            
+            <label>File Type</label>
+            <div class="file-type-grid" id="fileTypeGrid">
+                <!-- Web Development -->
+                <div class="file-type-option" data-type="html" onclick="selectFileType('html')">
+                    <i class="fab fa-html5" style="color: var(--html-color);"></i>
+                    <span>HTML</span>
+                </div>
+                <div class="file-type-option" data-type="css" onclick="selectFileType('css')">
+                    <i class="fab fa-css3-alt" style="color: var(--css-color);"></i>
+                    <span>CSS</span>
+                </div>
+                <div class="file-type-option" data-type="js" onclick="selectFileType('js')">
+                    <i class="fab fa-js" style="color: var(--js-color);"></i>
+                    <span>JavaScript</span>
+                </div>
+                
+                <!-- Backend & Others -->
+                <div class="file-type-option" data-type="python" onclick="selectFileType('python')">
+                    <i class="fab fa-python" style="color: var(--python-color);"></i>
+                    <span>Python</span>
+                </div>
+                <div class="file-type-option" data-type="react" onclick="selectFileType('react')">
+                    <i class="fab fa-react" style="color: var(--react-color);"></i>
+                    <span>React</span>
+                </div>
+                <div class="file-type-option" data-type="node" onclick="selectFileType('node')">
+                    <i class="fab fa-node-js" style="color: var(--node-color);"></i>
+                    <span>Node.js</span>
+                </div>
+                
+                <!-- System Languages -->
+                <div class="file-type-option" data-type="c" onclick="selectFileType('c')">
+                    <i class="fas fa-c" style="color: var(--c-color);"></i>
+                    <span>C</span>
+                </div>
+                <div class="file-type-option" data-type="cpp" onclick="selectFileType('cpp')">
+                    <i class="fas fa-code" style="color: var(--cpp-color);"></i>
+                    <span>C++</span>
+                </div>
+                <div class="file-type-option" data-type="csharp" onclick="selectFileType('csharp')">
+                    <i class="fas fa-code" style="color: var(--csharp-color);"></i>
+                    <span>C#</span>
+                </div>
+                
+                <!-- More Languages -->
+                <div class="file-type-option" data-type="java" onclick="selectFileType('java')">
+                    <i class="fab fa-java" style="color: var(--java-color);"></i>
+                    <span>Java</span>
+                </div>
+                <div class="file-type-option" data-type="json" onclick="selectFileType('json')">
+                    <i class="fas fa-brackets-curly" style="color: var(--warning);"></i>
+                    <span>JSON</span>
+                </div>
+                <div class="file-type-option" data-type="markdown" onclick="selectFileType('markdown')">
+                    <i class="fab fa-markdown" style="color: var(--text-primary);"></i>
+                    <span>Markdown</span>
+                </div>
+            </div>
+            
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="closeAddFileModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="createNewFile()">Create</button>
+                <button class="btn btn-primary" onclick="createNewFile()">Create File</button>
             </div>
         </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Success!</span>
     </div>
 
     <script>
         // ==================== STATE MANAGEMENT ====================
         const state = {
             files: [
-                { id: 1, name: 'index.html', type: 'html', content: '<h1>Hello World!</h1>\n<p>Welcome to Live Compiler Pro</p>\n<button onclick="sayHello()">Click Me</button>' },
-                { id: 2, name: 'styles.css', type: 'css', content: 'body {\n    font-family: Arial, sans-serif;\n    padding: 20px;\n    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n    color: white;\n}\n\nh1 {\n    font-size: 2.5rem;\n    margin-bottom: 10px;\n}\n\nbutton {\n    padding: 10px 20px;\n    background: white;\n    color: #667eea;\n    border: none;\n    border-radius: 5px;\n    cursor: pointer;\n    font-size: 1rem;\n}\n\nbutton:hover {\n    transform: scale(1.05);\n}' },
-                { id: 3, name: 'script.js', type: 'js', content: 'function sayHello() {\n    console.log("Hello from Live Compiler!");\n    alert("Welcome! 🚀");\n}\n\nconsole.log("Script loaded successfully");\nconsole.warn("This is a warning");\nconsole.error("This is an error");' }
+                { id: 1, name: 'index.html', type: 'html', content: '<!DOCTYPE html>\n<html>\n<head>\n    <title>My App</title>\n</head>\n<body>\n    <h1>Hello World! 🚀</h1>\n    <p>Welcome to Live Compiler Pro</p>\n    <button onclick="sayHello()">Click Me</button>\n    <div id="output"></div>\n</body>\n</html>' },
+                { id: 2, name: 'styles.css', type: 'css', content: 'body {\n    font-family: Arial, sans-serif;\n    padding: 40px;\n    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n    color: white;\n    min-height: 100vh;\n}\n\nh1 {\n    font-size: 2.5rem;\n    margin-bottom: 15px;\n}\n\nbutton {\n    padding: 12px 24px;\n    background: white;\n    color: #667eea;\n    border: none;\n    border-radius: 6px;\n    cursor: pointer;\n    font-size: 1rem;\n    font-weight: 600;\n    transition: transform 0.2s;\n}\n\nbutton:hover {\n    transform: scale(1.05);\n}' },
+                { id: 3, name: 'script.js', type: 'js', content: 'function sayHello() {\n    console.log("Hello from Live Compiler! 🎉");\n    document.getElementById("output").innerHTML = \n        "<p style=\'color: #4caf50; margin-top: 20px;\'>Button clicked! Check console.</p>";\n}\n\nconsole.log("Script loaded successfully ✅");\nconsole.warn("This is a warning ⚠️");\nconsole.error("This is an error ❌");' }
             ],
             activeFileId: 1,
+            selectedFileType: 'html',
             consoleVisible: true,
+            sidebarVisible: true,
             autoRun: true,
-            autoRunInterval: null
+            sectionCollapsed: {}
+        };
+
+        // Language configurations
+        const languageConfig = {
+            html: { icon: 'fa-html5', color: 'var(--html-color)', extension: '.html', tabSize: 4 },
+            css: { icon: 'fa-css3-alt', color: 'var(--css-color)', extension: '.css', tabSize: 4 },
+            js: { icon: 'fa-js', color: 'var(--js-color)', extension: '.js', tabSize: 4 },
+            python: { icon: 'fa-python', color: 'var(--python-color)', extension: '.py', tabSize: 4 },
+            react: { icon: 'fa-react', color: 'var(--react-color)', extension: '.jsx', tabSize: 4 },
+            node: { icon: 'fa-node-js', color: 'var(--node-color)', extension: '.js', tabSize: 4 },
+            c: { icon: 'fa-c', color: 'var(--c-color)', extension: '.c', tabSize: 4 },
+            cpp: { icon: 'fa-code', color: 'var(--cpp-color)', extension: '.cpp', tabSize: 4 },
+            csharp: { icon: 'fa-code', color: 'var(--csharp-color)', extension: '.cs', tabSize: 4 },
+            java: { icon: 'fa-java', color: 'var(--java-color)', extension: '.java', tabSize: 4 },
+            json: { icon: 'fa-brackets-curly', color: 'var(--warning)', extension: '.json', tabSize: 2 },
+            markdown: { icon: 'fa-markdown', color: 'var(--text-primary)', extension: '.md', tabSize: 2 }
+        };
+
+        // File type groups for sidebar
+        const fileGroups = {
+            'Web': ['html', 'css', 'js', 'react', 'node'],
+            'Backend': ['python', 'java', 'node'],
+            'System': ['c', 'cpp', 'csharp'],
+            'Other': ['json', 'markdown']
         };
 
         // ==================== DOM ELEMENTS ====================
@@ -725,6 +1052,10 @@
         const consoleOutput = document.getElementById('consoleOutput');
         const consolePanel = document.getElementById('consolePanel');
         const addFileModal = document.getElementById('addFileModal');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
 
         // ==================== INITIALIZATION ====================
         function init() {
@@ -735,27 +1066,100 @@
             setupConsoleIntercept();
             updatePreview();
             setupResizer();
+            setupKeyboardShortcuts();
+            
+            // Select default file type
+            selectFileType('html');
+        }
+
+        // ==================== FILE TYPE SELECTION ====================
+        function selectFileType(type) {
+            state.selectedFileType = type;
+            
+            // Update UI
+            document.querySelectorAll('.file-type-option').forEach(option => {
+                option.classList.remove('selected');
+                if (option.dataset.type === type) {
+                    option.classList.add('selected');
+                }
+            });
+        }
+
+        // ==================== SIDEBAR TOGGLE ====================
+        function toggleExplorer() {
+            state.sidebarVisible = !state.sidebarVisible;
+            sidebar.classList.toggle('collapsed', !state.sidebarVisible);
+            sidebarToggleBtn.classList.toggle('visible', !state.sidebarVisible);
+            
+            showToast(state.sidebarVisible ? 'Explorer opened' : 'Explorer hidden', 'info');
         }
 
         // ==================== FILE TABS ====================
         function renderFileTabs() {
-            fileTabsContainer.innerHTML = state.files.map(file => `
-                <div class="file-tab ${file.id === state.activeFileId ? 'active' : ''}" 
-                     onclick="switchFile(${file.id})">
-                    <i class="fas ${getFileIcon(file.type)} ${file.type}-icon"></i>
-                    <span class="file-name">${file.name}</span>
-                    <i class="fas fa-times close-tab" onclick="event.stopPropagation(); deleteFile(${file.id})"></i>
-                </div>
-            `).join('');
+            // Group files by category
+            const groupedFiles = {};
+            
+            Object.keys(fileGroups).forEach(group => {
+                groupedFiles[group] = state.files.filter(f => 
+                    fileGroups[group].includes(f.type)
+                );
+            });
+
+            fileTabsContainer.innerHTML = Object.entries(groupedFiles).map(([group, files]) => {
+                if (files.length === 0) return '';
+                
+                const isCollapsed = state.sectionCollapsed[group] || false;
+                
+                return `
+                    <div class="file-section">
+                        <div class="file-section-header ${isCollapsed ? 'collapsed' : ''}" 
+                             onclick="toggleSection('${group}')">
+                            <i class="fas fa-chevron-down"></i>
+                            <span>${group}</span>
+                            <span style="margin-left:auto;font-size:0.65rem;color:var(--text-secondary);">${files.length}</span>
+                        </div>
+                        <div class="file-section-content ${isCollapsed ? 'collapsed' : ''}">
+                            ${files.map(file => `
+                                <div class="file-tab ${file.id === state.activeFileId ? 'active' : ''}" 
+                                     onclick="switchFile(${file.id})">
+                                    <i class="fab ${getLanguageIcon(file.type)}" 
+                                       style="color: ${getLanguageColor(file.type)};"></i>
+                                    <span class="file-name">${file.name}</span>
+                                    <i class="fas fa-times close-tab" 
+                                       onclick="event.stopPropagation(); deleteFile(${file.id})"></i>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
-        function getFileIcon(type) {
+        function toggleSection(group) {
+            state.sectionCollapsed[group] = !state.sectionCollapsed[group];
+            renderFileTabs();
+        }
+
+        function getLanguageIcon(type) {
             const icons = {
                 html: 'fa-html5',
                 css: 'fa-css3-alt',
-                js: 'fa-js'
+                js: 'fa-js',
+                python: 'fa-python',
+                react: 'fa-react',
+                node: 'fa-node-js',
+                c: 'fa-c',
+                cpp: 'fa-code',
+                csharp: 'fa-code',
+                java: 'fa-java',
+                json: 'fa-brackets-curly',
+                markdown: 'fa-markdown'
             };
             return icons[type] || 'fa-file';
+        }
+
+        function getLanguageColor(type) {
+            return languageConfig[type]?.color || 'var(--text-secondary)';
         }
 
         // ==================== EDITOR TABS ====================
@@ -763,10 +1167,21 @@
             editorTabsContainer.innerHTML = state.files.map(file => `
                 <div class="editor-tab ${file.id === state.activeFileId ? 'active' : ''}" 
                      onclick="switchFile(${file.id})">
-                    <i class="fas ${getFileIcon(file.type)} ${file.type}-icon"></i>
+                    <i class="fab ${getLanguageIcon(file.type)}" 
+                       style="color: ${getLanguageColor(file.type)};"></i>
                     <span>${file.name}</span>
+                    <i class="fas fa-times close-editor-tab" 
+                       onclick="event.stopPropagation(); closeEditorTab(${file.id})"></i>
                 </div>
             `).join('');
+        }
+
+        function closeEditorTab(fileId) {
+            if (state.files.length <= 1) {
+                showToast('Cannot close the last file', 'warning');
+                return;
+            }
+            deleteFile(fileId);
         }
 
         // ==================== EDITORS ====================
@@ -777,8 +1192,10 @@
                     <div class="editor-wrapper">
                         <div class="line-numbers" id="lines-${file.id}"></div>
                         <textarea id="code-${file.id}" 
+                                  data-type="${file.type}"
                                   oninput="updateLineNumbers(${file.id}); onCodeChange(${file.id})"
                                   onscroll="syncScroll(${file.id})"
+                                  onkeydown="handleTabKey(event, ${file.id})"
                                   spellcheck="false">${escapeHtml(file.content)}</textarea>
                     </div>
                 </div>
@@ -808,6 +1225,82 @@
             linesDiv.scrollTop = textarea.scrollTop;
         }
 
+        // ==================== VS CODE STYLE TAB HANDLING ====================
+        function handleTabKey(event, fileId) {
+            const textarea = document.getElementById(`code-${fileId}`);
+            const file = state.files.find(f => f.id === fileId);
+            const tabSize = languageConfig[file?.type]?.tabSize || 4;
+
+            // Tab key - insert spaces
+            if (event.key === 'Tab') {
+                event.preventDefault();
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const spaces = ' '.repeat(tabSize);
+                
+                textarea.value = textarea.value.substring(0, start) + spaces + textarea.value.substring(end);
+                textarea.selectionStart = textarea.selectionEnd = start + tabSize;
+                onCodeChange(fileId);
+            }
+
+            // Enter key - maintain indentation
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const start = textarea.selectionStart;
+                const value = textarea.value;
+                
+                // Find current line's indentation
+                const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+                const currentLine = value.substring(lineStart, start);
+                const indentation = currentLine.match(/^(\s*)/)[0];
+                
+                // Check for auto-indent (if line ends with { or similar)
+                const prevChar = value[start - 1];
+                const nextChar = value[start];
+                let additionalIndent = '';
+                
+                if (prevChar === '{' || prevChar === ':' || prevChar === '(') {
+                    additionalIndent = ' '.repeat(tabSize);
+                }
+                
+                // Insert new line with indentation
+                const newLine = '\n' + indentation + additionalIndent;
+                textarea.value = value.substring(0, start) + newLine + value.substring(start);
+                
+                // Set cursor position
+                const newCursorPos = start + newLine.length;
+                textarea.selectionStart = textarea.selectionEnd = newCursorPos;
+                
+                // Handle auto-close brackets
+                if (prevChar === '{' && nextChar === '}') {
+                    // Move cursor inside the brackets
+                    textarea.selectionStart = textarea.selectionEnd = start + 1;
+                }
+                
+                updateLineNumbers(fileId);
+                onCodeChange(fileId);
+            }
+
+            // Auto-close brackets and quotes
+            const pairs = { '(': ')', '{': '}', '[': ']', '"': '"', "'": "'", '`': '`' };
+            if (pairs[event.key]) {
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const selectedText = textarea.value.substring(start, end);
+                
+                if (selectedText) {
+                    // Wrap selection
+                    event.preventDefault();
+                    textarea.value = textarea.value.substring(0, start) + 
+                        event.key + selectedText + pairs[event.key] + 
+                        textarea.value.substring(end);
+                    textarea.selectionStart = start + 1;
+                    textarea.selectionEnd = end + 1;
+                    onCodeChange(fileId);
+                }
+            }
+        }
+
         // ==================== FILE OPERATIONS ====================
         function switchFile(fileId) {
             state.activeFileId = fileId;
@@ -818,7 +1311,7 @@
 
         function deleteFile(fileId) {
             if (state.files.length <= 1) {
-                alert('Cannot delete the last file!');
+                showToast('Cannot delete the last file!', 'warning');
                 return;
             }
             if (confirm('Are you sure you want to delete this file?')) {
@@ -830,12 +1323,14 @@
                 renderEditorTabs();
                 renderEditors();
                 updatePreview();
+                showToast('File deleted', 'success');
             }
         }
 
         function openAddFileModal() {
             addFileModal.classList.add('active');
             document.getElementById('newFileName').focus();
+            selectFileType('html');
         }
 
         function closeAddFileModal() {
@@ -845,17 +1340,18 @@
 
         function createNewFile() {
             const nameInput = document.getElementById('newFileName');
-            const typeSelect = document.getElementById('newFileType');
             let fileName = nameInput.value.trim();
-            const fileType = typeSelect.value;
+            const fileType = state.selectedFileType;
+            const config = languageConfig[fileType];
 
             if (!fileName) {
-                alert('Please enter a file name');
+                showToast('Please enter a file name', 'warning');
                 return;
             }
 
+            // Auto-add extension if not present
             if (!fileName.includes('.')) {
-                fileName = `${fileName}.${fileType}`;
+                fileName = `${fileName}${config.extension}`;
             }
 
             const newFile = {
@@ -873,15 +1369,25 @@
             renderEditorTabs();
             renderEditors();
             updatePreview();
+            showToast(`Created ${fileName}`, 'success');
         }
 
         function getDefaultContent(type) {
             const defaults = {
-                html: '<!-- Your HTML here -->\n',
-                css: '/* Your CSS here */\n',
-                js: '// Your JavaScript here\n'
+                html: '<!DOCTYPE html>\n<html>\n<head>\n    <title>New Page</title>\n</head>\n<body>\n    <!-- Your content here -->\n</body>\n</html>',
+                css: '/* Styles here */\n\n.selector {\n    \n}',
+                js: '// JavaScript code here\n\n',
+                python: '# Python code here\n\ndef main():\n    \n\nif __name__ == "__main__":\n    main()',
+                react: 'import React from "react";\n\nfunction Component() {\n    return (\n        <div>\n            \n        </div>\n    );\n}\n\nexport default Component;',
+                node: 'const express = require("express");\nconst app = express();\n\napp.get("/", (req, res) => {\n    res.send("Hello World!");\n});\n\napp.listen(3000);',
+                c: '#include <stdio.h>\n\nint main() {\n    printf("Hello, World!\\n");\n    return 0;\n}',
+                cpp: '#include <iostream>\n\nint main() {\n    std::cout << "Hello, World!" << std::endl;\n    return 0;\n}',
+                csharp: 'using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Hello, World!");\n    }\n}',
+                java: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}',
+                json: '{\n    "key": "value"\n}',
+                markdown: '# Title\n\n## Section\n\n- Item 1\n- Item 2'
             };
-            return defaults[type] || '';
+            return defaults[type] || '// Your code here\n';
         }
 
         // ==================== CODE COMPILATION ====================
@@ -898,6 +1404,7 @@
             debounceTimer = setTimeout(() => {
                 if (state.autoRun) {
                     updatePreview();
+                    showToast('Auto-compiled', 'success');
                 }
             }, 1000);
         }
@@ -907,7 +1414,7 @@
             const cssFiles = state.files.filter(f => f.type === 'css');
             const jsFiles = state.files.filter(f => f.type === 'js');
 
-            let html = htmlFile ? htmlFile.content : '';
+            let html = htmlFile ? htmlFile.content : '<h1>No HTML file</h1>';
             let css = cssFiles.map(f => f.content).join('\n');
             let js = jsFiles.map(f => f.content).join('\n');
 
@@ -924,6 +1431,7 @@
                             const originalLog = console.log;
                             const originalWarn = console.warn;
                             const originalError = console.error;
+                            const originalInfo = console.info;
                             
                             console.log = function(...args) {
                                 window.parent.postMessage({type: 'console', level: 'log', args: args}, '*');
@@ -938,6 +1446,11 @@
                             console.error = function(...args) {
                                 window.parent.postMessage({type: 'console', level: 'error', args: args}, '*');
                                 originalError.apply(console, args);
+                            };
+                            
+                            console.info = function(...args) {
+                                window.parent.postMessage({type: 'console', level: 'info', args: args}, '*');
+                                originalInfo.apply(console, args);
                             };
                             
                             // Error handler
@@ -955,17 +1468,16 @@
             doc.open();
             doc.write(source);
             doc.close();
-
-            showStatus('Compiled!', 'success');
         }
 
         function runCode() {
             updatePreview();
-            showStatus('Running...', 'success');
+            showToast('Code executed!', 'success');
         }
 
         function refreshPreview() {
             updatePreview();
+            showToast('Preview refreshed', 'success');
         }
 
         function openInNewTab() {
@@ -993,6 +1505,7 @@
             const blob = new Blob([source], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
             window.open(url, '_blank');
+            showToast('Opened in new tab', 'success');
         }
 
         // ==================== CONSOLE ====================
@@ -1008,7 +1521,11 @@
             const timestamp = new Date().toLocaleTimeString();
             const message = args.map(arg => {
                 if (typeof arg === 'object') {
-                    return JSON.stringify(arg, null, 2);
+                    try {
+                        return JSON.stringify(arg, null, 2);
+                    } catch (e) {
+                        return String(arg);
+                    }
                 }
                 return String(arg);
             }).join(' ');
@@ -1028,27 +1545,33 @@
             state.consoleVisible = !state.consoleVisible;
             consolePanel.classList.toggle('collapsed', !state.consoleVisible);
             
-            const icon = consolePanel.querySelector('.console-toggle i');
+            const icon = document.getElementById('consoleToggleIcon');
             icon.className = state.consoleVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
         }
 
         function clearConsole() {
             consoleOutput.innerHTML = '';
+            showToast('Console cleared', 'success');
         }
 
         // ==================== AUTO-RUN ====================
         function setupAutoRun() {
             // Auto-run is handled by debounce on code change
-            // This ensures it runs 1 second after user stops typing
         }
 
-        // ==================== STATUS INDICATOR ====================
-        function showStatus(message, type) {
-            const statusDot = document.querySelector('.status-dot');
-            statusDot.style.background = type === 'success' ? 'var(--success)' : 'var(--warning)';
+        // ==================== TOAST NOTIFICATION ====================
+        function showToast(message, type = 'success') {
+            toastMessage.textContent = message;
+            toast.className = `toast ${type} show`;
+            
+            const icon = toast.querySelector('i');
+            icon.className = type === 'success' ? 'fas fa-check-circle' :
+                            type === 'error' ? 'fas fa-exclamation-circle' :
+                            type === 'warning' ? 'fas fa-exclamation-triangle' :
+                            'fas fa-info-circle';
             
             setTimeout(() => {
-                statusDot.style.background = 'var(--success)';
+                toast.classList.remove('show');
             }, 2000);
         }
 
@@ -1061,6 +1584,7 @@
                 renderEditors();
                 updatePreview();
                 clearConsole();
+                showToast('All files cleared', 'success');
             }
         }
 
@@ -1081,7 +1605,9 @@
                 if (!isResizing) return;
                 
                 const containerWidth = document.querySelector('.main-container').clientWidth;
-                const newEditorWidth = ((e.clientX / containerWidth) * 100);
+                const sidebarWidth = sidebar.classList.contains('collapsed') ? 0 : 250;
+                const availableWidth = containerWidth - sidebarWidth;
+                const newEditorWidth = (((e.clientX - sidebarWidth) / availableWidth) * 100);
                 
                 if (newEditorWidth > 20 && newEditorWidth < 80) {
                     editorArea.style.width = `${newEditorWidth}%`;
@@ -1097,28 +1623,41 @@
         }
 
         // ==================== KEYBOARD SHORTCUTS ====================
-        document.addEventListener('keydown', (e) => {
-            // Ctrl/Cmd + S to run
-            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-                e.preventDefault();
-                runCode();
-            }
-            
-            // Ctrl/Cmd + Enter to run
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                e.preventDefault();
-                runCode();
-            }
-            
-            // Escape to close modal
-            if (e.key === 'Escape') {
-                closeAddFileModal();
-            }
-        });
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                // Ctrl/Cmd + B - Toggle Explorer
+                if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                    e.preventDefault();
+                    toggleExplorer();
+                }
+                
+                // Ctrl/Cmd + S - Run code
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    runCode();
+                }
+                
+                // Ctrl/Cmd + Enter - Run code
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    runCode();
+                }
+                
+                // F5 - Refresh preview
+                if (e.key === 'F5') {
+                    e.preventDefault();
+                    refreshPreview();
+                }
+                
+                // Escape - Close modal
+                if (e.key === 'Escape') {
+                    closeAddFileModal();
+                }
+            });
+        }
 
         // ==================== START APPLICATION ====================
         init();
     </script>
 </body>
-
 </html>
