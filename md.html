@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Live Preview</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #0f1115;
+            --panel: #161920;
+            --border: #20242d;
+            --accent: #36b37e;
+            --text: #e7e9ed;
+            --muted: #9aa4b5;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            display: grid;
+            grid-template-rows: 56px 1fr;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+        }
+        .title { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+        .file-name { color: var(--muted); font-size: 0.9rem; }
+        .status { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.9rem; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.5;} }
+        .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); height: 100%; }
+        textarea {
+            width: 100%; height: 100%; border: none; outline: none;
+            background: var(--panel); color: var(--text);
+            padding: 16px; font-size: 0.95rem; line-height: 1.5;
+            resize: none; font-family: 'Fira Code', 'Consolas', monospace;
+        }
+        .preview {
+            background: #0d0f14;
+            padding: 16px;
+            overflow: auto;
+        }
+        .preview h1, .preview h2, .preview h3, .preview h4 { margin-top: 1.2em; }
+        .preview pre { background: #11131a; padding: 12px; border-radius: 6px; overflow: auto; }
+        .preview code { background: #11131a; padding: 2px 4px; border-radius: 4px; }
+        .preview a { color: #4da3ff; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="title">
+            <i class="fas fa-file-lines"></i>
+            <span>Markdown Live Preview</span>
+            <span class="file-name" id="fileName">md</span>
+        </div>
+        <div class="status">
+            <span class="dot"></span>
+            <span>Auto preview: 1s</span>
+        </div>
+    </header>
+    <div class="layout">
+        <textarea id="mdInput" aria-label="Markdown input"></textarea>
+        <div class="preview" id="mdPreview"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        const inputEl = document.getElementById('mdInput');
+        const previewEl = document.getElementById('mdPreview');
+        const fileNameEl = document.getElementById('fileName');
+        let debounceTimer = null;
+        const VOID_HTML_TAGS = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+
+        function setValueAndCaret(text, start, end) {
+            inputEl.value = text;
+            inputEl.selectionStart = start;
+            inputEl.selectionEnd = end;
+        }
+
+        function handleKeydown(e) {
+            const value = inputEl.value;
+            const start = inputEl.selectionStart;
+            const end = inputEl.selectionEnd;
+
+            // Tab inserts spaces
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const spaces = '    ';
+                setValueAndCaret(
+                    value.slice(0, start) + spaces + value.slice(end),
+                    start + spaces.length,
+                    start + spaces.length
+                );
+                scheduleRender();
+                return;
+            }
+
+            // Pair auto-close
+            const pairs = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'", '`': '`' };
+            if (pairs[e.key]) {
+                e.preventDefault();
+                const inserted = e.key + value.slice(start, end) + pairs[e.key];
+                setValueAndCaret(
+                    value.slice(0, start) + inserted + value.slice(end),
+                    start + 1,
+                    end + 1
+                );
+                scheduleRender();
+                return;
+            }
+
+            // Auto-close HTML tags common in MD
+            if (e.key === '>') {
+                const before = value.slice(0, start);
+                const match = before.match(/<([A-Za-z][\w-]*)[^<>]*$/);
+                const isClosing = match && match[0].includes('</');
+                const selfClosed = match && /\/\s*$/.test(match[0]);
+                if (match && !isClosing && !selfClosed) {
+                    const tag = match[1].toLowerCase();
+                    if (!VOID_HTML_TAGS.has(tag)) {
+                        e.preventDefault();
+                        const insert = '></' + tag + '>';
+                        const newValue = value.slice(0, start) + insert + value.slice(end);
+                        const caret = start + 1; // between open and close
+                        setValueAndCaret(newValue, caret, caret);
+                        scheduleRender();
+                        return;
+                    }
+                }
+            }
+
+            // Enter with indentation and list continuation
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+                const currentLine = value.slice(lineStart, start);
+                const indent = (currentLine.match(/^\s*/) || [''])[0];
+                const listMatch = currentLine.match(/^(\s*)([-*+]\s|\d+\.\s)/);
+                const fence = currentLine.trim().startsWith('```');
+                const tagMatch = currentLine.match(/^\s*<([A-Za-z][\w-]*)[^>]*?>\s*$/);
+
+                let nextLinePrefix = indent;
+                if (listMatch) {
+                    nextLinePrefix = listMatch[1] + listMatch[2];
+                }
+
+                let insertText = '\n' + nextLinePrefix;
+                let cursorPos = start + insertText.length;
+
+                // Auto-close simple HTML block tags when the line contains only the opening tag
+                if (tagMatch) {
+                    const tag = tagMatch[1].toLowerCase();
+                    if (!VOID_HTML_TAGS.has(tag) && !/\/\s*>$/.test(currentLine)) {
+                        insertText = '\n' + indent + '    ' + '\n' + indent + '</' + tag + '>';
+                        cursorPos = lineStart + indent.length + 5; // inside the new block
+                    }
+                }
+
+                // Auto-close code fence
+                if (fence) {
+                    insertText = '\n' + indent + '\n' + indent + '```';
+                    cursorPos = lineStart + indent.length + 1; // between fences
+                }
+
+                const newValue = value.slice(0, start) + insertText + value.slice(end);
+                setValueAndCaret(newValue, cursorPos, cursorPos);
+                scheduleRender();
+            }
+        }
+
+        function loadInitialContent() {
+            try {
+                const raw = sessionStorage.getItem('mdLivePayload');
+                if (!raw) return;
+                const parsed = JSON.parse(raw);
+                if (parsed.content) inputEl.value = parsed.content;
+                if (parsed.name) fileNameEl.textContent = parsed.name;
+            } catch (err) {
+                // ignore
+            }
+            renderNow();
+        }
+
+        function renderNow() {
+            const md = inputEl.value || '';
+            previewEl.innerHTML = marked.parse(md, { breaks: true });
+        }
+
+        function scheduleRender() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(renderNow, 1000);
+        }
+
+        inputEl.addEventListener('input', () => {
+            scheduleRender();
+        });
+        inputEl.addEventListener('keydown', handleKeydown);
+
+        loadInitialContent();
+    </script>
+</body>
+</html>

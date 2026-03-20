@@ -18,7 +18,7 @@ const state = {
     selectedFileType: 'html',
     consoleVisible: true,
     sidebarVisible: true,
-    autoRun: true,
+    autoRun: false,
     sectionCollapsed: {},
     sidebarWidth: 250,
     previewVisible: true,
@@ -32,23 +32,37 @@ const languageConfig = {
     css: { icon: 'fa-css3-alt', color: 'var(--css-color)', extension: '.css', tabSize: 4 },
     js: { icon: 'fa-js', color: 'var(--js-color)', extension: '.js', tabSize: 4 },
     python: { icon: 'fa-python', color: 'var(--python-color)', extension: '.py', tabSize: 4 },
-    react: { icon: 'fa-react', color: 'var(--react-color)', extension: '.jsx', tabSize: 4 },
-    node: { icon: 'fa-node-js', color: 'var(--node-color)', extension: '.js', tabSize: 4 },
-    c: { icon: 'fa-c', color: 'var(--c-color)', extension: '.c', tabSize: 4 },
-    cpp: { icon: 'fa-code', color: 'var(--cpp-color)', extension: '.cpp', tabSize: 4 },
-    csharp: { icon: 'fa-code', color: 'var(--csharp-color)', extension: '.cs', tabSize: 4 },
-    java: { icon: 'fa-java', color: 'var(--java-color)', extension: '.java', tabSize: 4 },
     json: { icon: 'fa-brackets-curly', color: 'var(--warning)', extension: '.json', tabSize: 2 },
     markdown: { icon: 'fa-markdown', color: 'var(--text-primary)', extension: '.md', tabSize: 2 }
 };
 
 // File type groups for sidebar
 const fileGroups = {
-    'Web': ['html', 'css', 'js', 'react', 'node'],
-    'Backend': ['python', 'java', 'node'],
-    'System': ['c', 'cpp', 'csharp'],
+    'Web': ['html', 'css', 'js'],
+    'Backend': ['python'],
     'Other': ['json', 'markdown']
 };
+
+// HTML tags for auto-wrap helper
+const HTML_TAG_SET = new Set([
+    '!doctype', 'a', 'abbr', 'acronym', 'address', 'applet', 'area', 'article', 'aside', 'audio', 'b', 'base',
+    'basefont', 'bdi', 'bdo', 'bgsound', 'big', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption',
+    'center', 'cite', 'code', 'col', 'colgroup', 'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog',
+    'dir', 'div', 'dl', 'dt', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'font', 'footer', 'form',
+    'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'i',
+    'iframe', 'img', 'input', 'ins', 'isindex', 'kbd', 'keygen', 'label', 'legend', 'li', 'link', 'main',
+    'mark', 'marquee', 'menuitem', 'meta', 'meter', 'nav', 'nobr', 'noembed', 'noscript', 'object', 'optgroup',
+    'option', 'output', 'p', 'param', 'pre', 'progress', 'q', 'rp', 'rt', 'ruby', 's', 'samp', 'script',
+    'section', 'small', 'source', 'spacer', 'span', 'strike', 'strong', 'style', 'sub', 'summary', 'sup',
+    'svg', 'table', 'tbody', 'td', 'template', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'tt',
+    'u', 'var', 'video', 'wbr', 'xmp'
+]);
+
+const HTML_VOID_TAGS = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr','basefont','bgsound','frame','isindex','keygen','menuitem','spacer']);
+
+// Per-file undo/redo history
+const historyStore = {};
+let isRestoringHistory = false;
 
 // Width constraints for resizable sidebar
 const SIDEBAR_MIN_WIDTH = 180;
@@ -80,6 +94,26 @@ const toastMessage = document.getElementById('toastMessage');
 const editorArea = document.querySelector('.editor-area');
 let pyodideReadyPromise = null;
 let persistTimer = null;
+
+function setupModalDismiss() {
+    const infoModal = document.getElementById('infoModal');
+    if (infoModal) {
+        infoModal.addEventListener('click', (event) => {
+            if (event.target === infoModal) {
+                closeInfoModal();
+            }
+        });
+    }
+
+    const addModal = document.getElementById('addFileModal');
+    if (addModal) {
+        addModal.addEventListener('click', (event) => {
+            if (event.target === addModal) {
+                closeAddFileModal();
+            }
+        });
+    }
+}
 
 function persistStateNow() {
     const payload = {
@@ -134,7 +168,8 @@ function restoreStateFromStorage() {
         if (typeof savedState.activeFileId === 'number') state.activeFileId = savedState.activeFileId;
         if (typeof savedState.selectedFileType === 'string') state.selectedFileType = savedState.selectedFileType;
         if (typeof savedState.consoleVisible === 'boolean') state.consoleVisible = savedState.consoleVisible;
-        if (typeof savedState.autoRun === 'boolean') state.autoRun = savedState.autoRun;
+        // Force manual-run mode regardless of previously persisted value.
+        state.autoRun = false;
         if (savedState.sectionCollapsed && typeof savedState.sectionCollapsed === 'object') {
             state.sectionCollapsed = savedState.sectionCollapsed;
         }
@@ -172,6 +207,7 @@ function init() {
     setupSidebarResizer();
     setupResizer();
     setupKeyboardShortcuts();
+    setupModalDismiss();
 
     if (!state.consoleVisible) {
         consolePanel.classList.add('collapsed');
@@ -266,8 +302,8 @@ function detectFileTypeByName(fileName) {
         js: 'js',
         mjs: 'js',
         py: 'python',
-        jsx: 'react',
-        tsx: 'react',
+        jsx: 'js',
+        tsx: 'js',
         json: 'json',
         md: 'markdown',
         markdown: 'markdown',
@@ -303,6 +339,10 @@ function importFiles(event) {
             state.files.push(newFile);
             importedCount += 1;
 
+            if (fileType === 'markdown') {
+                openMarkdownCompiler(content, file.name);
+            }
+
             pending -= 1;
             if (pending === 0) {
                 state.activeFileId = state.files[state.files.length - 1].id;
@@ -336,6 +376,20 @@ function importFiles(event) {
 
         reader.readAsText(file);
     });
+}
+
+function openMarkdownCompiler(content = '', fileName = 'markdown.md') {
+    const payload = {
+        name: fileName,
+        content: content,
+        savedAt: Date.now()
+    };
+    try {
+        sessionStorage.setItem('mdLivePayload', JSON.stringify(payload));
+    } catch (err) {
+        // If storage fails, continue and open page; user can paste manually.
+    }
+    window.open('md.html', '_blank');
 }
 
 // ==================== FILE TABS ====================
@@ -410,11 +464,17 @@ function getLanguageColor(type) {
 // ==================== EDITOR TABS ====================
 function renderEditorTabs() {
     editorTabsContainer.innerHTML = state.files.map(file => `
-        <div class="editor-tab ${file.id === state.activeFileId ? 'active' : ''}" 
+        <div class="editor-tab ${file.id === state.activeFileId ? 'active' : ''}"
+             role="tab"
+             aria-selected="${file.id === state.activeFileId}"
+             tabindex="${file.id === state.activeFileId ? '0' : '-1'}"
              onclick="switchFile(${file.id})">
             <i class="fab ${getLanguageIcon(file.type)}" 
                style="color: ${getLanguageColor(file.type)};"></i>
             <span>${file.name}</span>
+            <i class="fas fa-download close-editor-tab" 
+               title="Export file"
+               onclick="event.stopPropagation(); exportFile(${file.id})"></i>
             <i class="fas fa-times close-editor-tab" 
                onclick="event.stopPropagation(); closeEditorTab(${file.id})"></i>
         </div>
@@ -427,6 +487,22 @@ function closeEditorTab(fileId) {
         return;
     }
     deleteFile(fileId);
+}
+
+function exportFile(fileId) {
+    const file = state.files.find(f => f.id === fileId);
+    if (!file) return;
+
+    const blob = new Blob([file.content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name || 'download.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(`Exported ${file.name}`, 'success');
 }
 
 // ==================== EDITORS ====================
@@ -448,6 +524,7 @@ function renderEditors() {
     
     state.files.forEach(file => {
         updateLineNumbers(file.id);
+        primeHistory(file.id, file.content);
     });
 }
 
@@ -498,6 +575,32 @@ function handleTabKey(event, fileId) {
         const lineStart = value.lastIndexOf('\n', start - 1) + 1;
         const currentLine = value.substring(lineStart, start);
         const indentation = currentLine.match(/^(\s*)/)[0];
+
+        // Auto-wrap bare tag names into <tag></tag>
+        const trimmed = currentLine.trim();
+        const tagMatch = trimmed.match(/^([A-Za-z][\w-]*)$/);
+        if (tagMatch && HTML_TAG_SET.has(tagMatch[1].toLowerCase())) {
+            const tag = tagMatch[1];
+            const isVoid = HTML_VOID_TAGS.has(tag.toLowerCase());
+            const openTag = `<${tag}>`;
+            const closeTag = isVoid ? '' : `</${tag}>`;
+            const innerIndent = indentation + ' '.repeat(tabSize);
+
+            const before = value.substring(0, lineStart);
+            const after = value.substring(start);
+            const newContent = isVoid
+                ? `${before}${indentation}${openTag}${after}`
+                : `${before}${indentation}${openTag}\n${innerIndent}\n${indentation}${closeTag}${after}`;
+
+            textarea.value = newContent;
+            const cursorPos = isVoid
+                ? (before + indentation + openTag).length
+                : (before + indentation + openTag + '\n' + innerIndent).length;
+            textarea.selectionStart = textarea.selectionEnd = cursorPos;
+            updateLineNumbers(fileId);
+            onCodeChange(fileId);
+            return;
+        }
         
         // Check for auto-indent (if line ends with { or similar)
         const prevChar = value[start - 1];
@@ -544,6 +647,188 @@ function handleTabKey(event, fileId) {
             onCodeChange(fileId);
         }
     }
+
+    // Auto-close HTML/JSX tags on '>'
+    if (event.key === '>' && (file?.type === 'html' || file?.type === 'react')) {
+        const cursor = textarea.selectionStart;
+        const before = textarea.value.substring(0, cursor);
+        const match = before.match(/<([A-Za-z][\w-]*)([^<>]*?)$/);
+        const voidTags = ['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr'];
+
+        if (match) {
+            const tagName = match[1];
+            const attrs = match[2] || '';
+            const isClosing = match[0].includes('</');
+            const selfClosed = attrs.trim().endsWith('/') || voidTags.includes(tagName.toLowerCase());
+
+            if (!isClosing && !selfClosed) {
+                event.preventDefault();
+                const closing = `</${tagName}>`;
+                const newValue = `${before}>${closing}${textarea.value.substring(cursor)}`;
+                textarea.value = newValue;
+                const newPos = cursor + 1; // place cursor between open and close
+                textarea.selectionStart = textarea.selectionEnd = newPos;
+                updateLineNumbers(fileId);
+                onCodeChange(fileId);
+            }
+        }
+    }
+}
+
+// ==================== FORMATTER ====================
+function formatCurrentFile() {
+    const file = state.files.find(f => f.id === state.activeFileId);
+    if (!file) return;
+
+    const formatted = formatContent(file.type, file.content);
+    if (formatted == null) {
+        showToast('Formatting not available for this file type', 'warning');
+        return;
+    }
+
+    file.content = formatted;
+    const textarea = document.getElementById(`code-${file.id}`);
+    if (textarea) {
+        textarea.value = formatted;
+        updateLineNumbers(file.id);
+    }
+
+    updatePreview();
+    showToast('Formatted', 'success');
+    recordHistory(file.id);
+    schedulePersistState();
+}
+
+function formatContent(type, content) {
+    if (!content) return content;
+    const clean = content.replace(/\r\n/g, '\n');
+    if (type === 'js' || type === 'css' || type === 'react' || type === 'node' || type === 'c' || type === 'cpp' || type === 'csharp' || type === 'java') {
+        return formatBraced(clean, 4);
+    }
+    if (type === 'html') {
+        return formatHtml(clean, 2);
+    }
+    return null;
+}
+
+function formatBraced(content, indentSize = 4) {
+    const lines = content.split('\n');
+    let indent = 0;
+    const result = lines.map(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return '';
+
+        const closing = /^([}\]]|\)\s*;?|case\b|default\b)/.test(trimmed);
+        if (closing) {
+            indent = Math.max(indent - 1, 0);
+        }
+
+        const indented = ' '.repeat(indent * indentSize) + trimmed;
+
+        const openCount = (trimmed.match(/[({\[]/g) || []).length;
+        const closeCount = (trimmed.match(/[)}\]]/g) || []).length;
+        indent += Math.max(openCount - closeCount, 0);
+
+        return indented;
+    });
+
+    return result.join('\n');
+}
+
+function formatHtml(content, indentSize = 2) {
+    const tokens = content.split(/(<[^>]+>)/g).filter(t => t.trim() !== '');
+    const voidTags = ['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr'];
+    let indent = 0;
+    const out = tokens.map(tok => {
+        const trimmed = tok.trim();
+        const isClosing = /^<\//.test(trimmed);
+        const tagName = trimmed.match(/^<\/?\s*([a-zA-Z0-9-]+)/)?.[1]?.toLowerCase();
+        const isVoid = voidTags.includes(tagName) || /\/>$/.test(trimmed) || /^<!/.test(trimmed) || /^<script/i.test(trimmed) || /^<style/i.test(trimmed);
+
+        if (isClosing) {
+            indent = Math.max(indent - 1, 0);
+        }
+
+        const line = ' '.repeat(indent * indentSize) + trimmed;
+
+        if (!isClosing && !isVoid && /^<[^>]+>$/.test(trimmed)) {
+            indent += 1;
+        }
+
+        return line;
+    });
+
+    return out.join('\n');
+}
+
+// ==================== HISTORY (UNDO/REDO) ====================
+function primeHistory(fileId, initialContent = '') {
+    if (!historyStore[fileId]) {
+        historyStore[fileId] = {
+            stack: [{ content: initialContent, selectionStart: 0, selectionEnd: 0 }],
+            pointer: 0
+        };
+    }
+}
+
+function recordHistory(fileId) {
+    primeHistory(fileId);
+    const textarea = document.getElementById(`code-${fileId}`);
+    if (!textarea) return;
+    const entry = {
+        content: textarea.value,
+        selectionStart: textarea.selectionStart,
+        selectionEnd: textarea.selectionEnd
+    };
+    const hist = historyStore[fileId];
+    const current = hist.stack[hist.pointer];
+    if (current && current.content === entry.content && current.selectionStart === entry.selectionStart && current.selectionEnd === entry.selectionEnd) {
+        return;
+    }
+
+    if (hist.pointer < hist.stack.length - 1) {
+        hist.stack = hist.stack.slice(0, hist.pointer + 1);
+    }
+
+    hist.stack.push(entry);
+    hist.pointer = hist.stack.length - 1;
+
+    const MAX_HISTORY = 200;
+    if (hist.stack.length > MAX_HISTORY) {
+        hist.stack.shift();
+        hist.pointer = hist.stack.length - 1;
+    }
+}
+
+function applyHistoryEntry(fileId, entry) {
+    const textarea = document.getElementById(`code-${fileId}`);
+    if (!textarea) return;
+    isRestoringHistory = true;
+    textarea.value = entry.content;
+    textarea.selectionStart = entry.selectionStart;
+    textarea.selectionEnd = entry.selectionEnd;
+    const file = state.files.find(f => f.id === fileId);
+    if (file) file.content = entry.content;
+    updateLineNumbers(fileId);
+    updatePreview();
+    schedulePersistState();
+    isRestoringHistory = false;
+}
+
+function undoInEditor(fileId) {
+    const hist = historyStore[fileId];
+    if (!hist || hist.pointer <= 0) return false;
+    hist.pointer -= 1;
+    applyHistoryEntry(fileId, hist.stack[hist.pointer]);
+    return true;
+}
+
+function redoInEditor(fileId) {
+    const hist = historyStore[fileId];
+    if (!hist || hist.pointer >= hist.stack.length - 1) return false;
+    hist.pointer += 1;
+    applyHistoryEntry(fileId, hist.stack[hist.pointer]);
+    return true;
 }
 
 // ==================== FILE OPERATIONS ====================
@@ -565,6 +850,7 @@ function deleteFile(fileId) {
         if (state.activeFileId === fileId) {
             state.activeFileId = state.files[0].id;
         }
+        delete historyStore[fileId];
         renderFileTabs();
         renderEditorTabs();
         renderEditors();
@@ -583,6 +869,20 @@ function openAddFileModal() {
 function closeAddFileModal() {
     addFileModal.classList.remove('active');
     document.getElementById('newFileName').value = '';
+}
+
+function openInfoModal() {
+    const modal = document.getElementById('infoModal');
+    if (modal) {
+        modal.classList.add('active');
+    }
+}
+
+function closeInfoModal() {
+    const modal = document.getElementById('infoModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
 }
 
 function createNewFile() {
@@ -610,6 +910,10 @@ function createNewFile() {
 
     state.files.push(newFile);
     state.activeFileId = newFile.id;
+    primeHistory(newFile.id, newFile.content);
+    if (fileType === 'markdown') {
+        openMarkdownCompiler(newFile.content, newFile.name);
+    }
     
     closeAddFileModal();
     renderFileTabs();
@@ -626,12 +930,6 @@ function getDefaultContent(type) {
         css: '/* Styles here */\n\n.selector {\n    \n}',
         js: '// JavaScript code here\n\n',
         python: '# Python code here\n\ndef main():\n    \n\nif __name__ == "__main__":\n    main()',
-        react: 'import React from "react";\n\nfunction Component() {\n    return (\n        <div>\n            \n        </div>\n    );\n}\n\nexport default Component;',
-        node: 'const express = require("express");\nconst app = express();\n\napp.get("/", (req, res) => {\n    res.send("Hello World!");\n});\n\napp.listen(3000);',
-        c: '#include <stdio.h>\n\nint main() {\n    printf("Hello, World!\\n");\n    return 0;\n}',
-        cpp: '#include <iostream>\n\nint main() {\n    std::cout << "Hello, World!" << std::endl;\n    return 0;\n}',
-        csharp: 'using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Hello, World!");\n    }\n}',
-        java: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}',
         json: '{\n    "key": "value"\n}',
         markdown: '# Title\n\n## Section\n\n- Item 1\n- Item 2'
     };
@@ -639,23 +937,14 @@ function getDefaultContent(type) {
 }
 
 // ==================== CODE COMPILATION ====================
-let debounceTimer = null;
-
 function onCodeChange(fileId) {
+    if (isRestoringHistory) return;
     const file = state.files.find(f => f.id === fileId);
     if (file) {
         file.content = document.getElementById(`code-${fileId}`).value;
     }
 
-    // Debounce - wait 1 second after last keystroke
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-        if (state.autoRun) {
-            updatePreview();
-            showToast('Auto-compiled', 'success');
-        }
-    }, 1000);
-
+    recordHistory(fileId);
     schedulePersistState();
 }
 
@@ -794,6 +1083,7 @@ function applyPreviewLayout() {
     }
 
     updatePreviewToggleIcon();
+    updatePreviewToggleAria();
 }
 
 function togglePreviewArea() {
@@ -806,6 +1096,13 @@ function togglePreviewArea() {
 function updatePreviewToggleIcon() {
     if (!previewToggleIcon) return;
     previewToggleIcon.className = state.previewVisible ? 'fas fa-eye' : 'fas fa-eye-slash';
+}
+
+function updatePreviewToggleAria() {
+    const previewToggleButton = document.getElementById('previewToggleButton');
+    if (previewToggleButton) {
+        previewToggleButton.setAttribute('aria-pressed', String(state.previewVisible));
+    }
 }
 
 // ==================== PYTHON BACKEND ====================
@@ -902,6 +1199,9 @@ function toggleConsole() {
     
     const icon = document.getElementById('consoleToggleIcon');
     icon.className = state.consoleVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+    document.querySelectorAll('.console-toggle-btn').forEach(btn => {
+        btn.setAttribute('aria-pressed', String(state.consoleVisible));
+    });
     schedulePersistState();
 }
 
@@ -1015,6 +1315,26 @@ function setupSidebarResizer() {
 // ==================== KEYBOARD SHORTCUTS ====================
 function setupKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
+        const target = e.target;
+
+        // Ctrl/Cmd + Z - Undo
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
+            const handled = tryHistoryAction(target, 'undo');
+            if (handled) {
+                e.preventDefault();
+                return;
+            }
+        }
+
+        // Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y - Redo
+        if ((e.ctrlKey || e.metaKey) && ((e.shiftKey && e.key.toLowerCase() === 'z') || e.key.toLowerCase() === 'y')) {
+            const handled = tryHistoryAction(target, 'redo');
+            if (handled) {
+                e.preventDefault();
+                return;
+            }
+        }
+
         // Ctrl/Cmd + B - Toggle current sidebar panel (VS Code style)
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
             e.preventDefault();
@@ -1038,6 +1358,12 @@ function setupKeyboardShortcuts() {
             e.preventDefault();
             togglePreviewArea();
         }
+
+        // Ctrl/Cmd + Shift + F - Format current file
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+            e.preventDefault();
+            formatCurrentFile();
+        }
         
         // F5 - Refresh preview
         if (e.key === 'F5') {
@@ -1048,8 +1374,15 @@ function setupKeyboardShortcuts() {
         // Escape - Close modal
         if (e.key === 'Escape') {
             closeAddFileModal();
+            closeInfoModal();
         }
     });
+}
+
+function tryHistoryAction(target, action) {
+    if (!(target instanceof HTMLTextAreaElement) || !target.id.startsWith('code-')) return false;
+    const fileId = Number(target.id.replace('code-', ''));
+    return action === 'undo' ? undoInEditor(fileId) : redoInEditor(fileId);
 }
 
 // ==================== START APPLICATION ====================

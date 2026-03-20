@@ -11,26 +11,30 @@
 <body>
     <!-- Header -->
     <header class="header">
-        <div class="logo">
+        <button class="logo-button" type="button" onclick="openInfoModal()" aria-label="Open help and about popup">
             <i class="fas fa-bolt"></i>
             <span>Live Compiler Pro</span>
-        </div>
+        </button>
         
         <div class="status-indicator">
             <div class="status-dot"></div>
-            <span>Auto-run: 1s</span>
+            <span>Run mode: Manual</span>
             <div class="auto-run-indicator">
-                <i class="fas fa-play"></i>
-                <span>Active</span>
+                <i class="fas fa-hand-paper"></i>
+                <span>Click Run</span>
             </div>
         </div>
         
         <div class="header-actions">
-            <button class="btn btn-secondary" onclick="clearAll()">
+            <button class="btn btn-secondary" onclick="clearAll()" aria-label="Clear all files">
                 <i class="fas fa-trash"></i>
                 <span class="ml-5">Clear</span>
             </button>
-            <button class="btn btn-primary" onclick="runCode()">
+            <button class="btn btn-secondary" onclick="formatCurrentFile()" aria-label="Format current file" title="Format (Ctrl+Shift+F)">
+                <i class="fas fa-indent"></i>
+                <span class="ml-5">Format</span>
+            </button>
+            <button class="btn btn-primary" onclick="runCode()" aria-label="Run code">
                 <i class="fas fa-play"></i>
                 <span class="ml-5">Run</span>
             </button>
@@ -100,7 +104,7 @@
 
         <!-- Editor Area -->
         <div class="editor-area">
-            <div class="editor-tabs" id="editorTabs">
+            <div class="editor-tabs" id="editorTabs" role="tablist" aria-label="Open files">
                 <!-- Editor tabs will be generated here -->
             </div>
             <div class="editor-content" id="editorContent">
@@ -119,16 +123,16 @@
                     <span>Preview</span>
                 </div>
                 <div class="preview-actions">
-                    <button onclick="togglePreviewArea()" title="Toggle Preview (Ctrl+Shift+P)">
+                    <button id="previewToggleButton" onclick="togglePreviewArea()" title="Toggle Preview (Ctrl+Shift+P)" aria-label="Toggle preview" aria-pressed="true">
                         <i class="fas fa-eye" id="previewToggleIcon"></i>
                     </button>
-                    <button onclick="refreshPreview()" title="Refresh (F5)">
+                    <button onclick="refreshPreview()" title="Refresh (F5)" aria-label="Refresh preview">
                         <i class="fas fa-sync"></i>
                     </button>
-                    <button onclick="openInNewTab()" title="Open in New Tab">
+                    <button onclick="openInNewTab()" title="Open in New Tab" aria-label="Open preview in new tab">
                         <i class="fas fa-external-link-alt"></i>
                     </button>
-                    <button onclick="toggleConsole()" title="Toggle Console">
+                    <button class="console-toggle-btn" onclick="toggleConsole()" title="Toggle Console" aria-label="Toggle console" aria-pressed="true">
                         <i class="fas fa-terminal"></i>
                     </button>
                 </div>
@@ -143,10 +147,10 @@
                         <span>Console</span>
                     </div>
                     <div class="console-actions">
-                        <button onclick="clearConsole()">
+                        <button onclick="clearConsole()" aria-label="Clear console">
                             <i class="fas fa-trash"></i> Clear
                         </button>
-                        <button type="button" onclick="toggleConsole()" title="Toggle Console">
+                        <button type="button" class="console-toggle-btn" onclick="toggleConsole()" title="Toggle Console" aria-label="Toggle console" aria-pressed="true">
                             <i class="fas fa-chevron-down" id="consoleToggleIcon"></i>
                         </button>
                     </div>
@@ -164,7 +168,7 @@
             <h3><i class="fas fa-file-circle-plus"></i> Create New File</h3>
             
             <label>File Name</label>
-            <input type="text" id="newFileName" placeholder="e.g., app, script, main">
+            <input type="text" id="newFileName" placeholder="e.g., app, script, main" aria-label="New file name">
             
             <label>File Type</label>
             <div class="file-type-grid" id="fileTypeGrid">
@@ -187,34 +191,8 @@
                     <i class="fab fa-python" style="color: var(--python-color);"></i>
                     <span>Python</span>
                 </div>
-                <div class="file-type-option" data-type="react" onclick="selectFileType('react')">
-                    <i class="fab fa-react" style="color: var(--react-color);"></i>
-                    <span>React</span>
-                </div>
-                <div class="file-type-option" data-type="node" onclick="selectFileType('node')">
-                    <i class="fab fa-node-js" style="color: var(--node-color);"></i>
-                    <span>Node.js</span>
-                </div>
-                
-                <!-- System Languages -->
-                <div class="file-type-option" data-type="c" onclick="selectFileType('c')">
-                    <i class="fas fa-c" style="color: var(--c-color);"></i>
-                    <span>C</span>
-                </div>
-                <div class="file-type-option" data-type="cpp" onclick="selectFileType('cpp')">
-                    <i class="fas fa-code" style="color: var(--cpp-color);"></i>
-                    <span>C++</span>
-                </div>
-                <div class="file-type-option" data-type="csharp" onclick="selectFileType('csharp')">
-                    <i class="fas fa-code" style="color: var(--csharp-color);"></i>
-                    <span>C#</span>
-                </div>
                 
                 <!-- More Languages -->
-                <div class="file-type-option" data-type="java" onclick="selectFileType('java')">
-                    <i class="fab fa-java" style="color: var(--java-color);"></i>
-                    <span>Java</span>
-                </div>
                 <div class="file-type-option" data-type="json" onclick="selectFileType('json')">
                     <i class="fas fa-brackets-curly" style="color: var(--warning);"></i>
                     <span>JSON</span>
@@ -226,8 +204,8 @@
             </div>
             
             <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeAddFileModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="createNewFile()">Create File</button>
+                <button class="btn btn-secondary" onclick="closeAddFileModal()" aria-label="Cancel create file">Cancel</button>
+                <button class="btn btn-primary" onclick="createNewFile()" aria-label="Create file">Create File</button>
             </div>
         </div>
     </div>
@@ -236,6 +214,49 @@
     <div class="toast" id="toast">
         <i class="fas fa-check-circle"></i>
         <span id="toastMessage">Success!</span>
+    </div>
+
+    <!-- Info Modal -->
+    <div class="modal-overlay" id="infoModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-circle-info"></i> Quick Guide</h3>
+                <button class="icon-btn" type="button" aria-label="Close info modal" onclick="closeInfoModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="info-grid">
+                <div class="info-block">
+                    <h4><i class="fas fa-keyboard"></i> Shortcuts</h4>
+                    <ul>
+                        <li>Run: Ctrl/Cmd + S or Ctrl/Cmd + Enter</li>
+                        <li>Toggle preview: Ctrl/Cmd + Shift + P</li>
+                        <li>Format file: Ctrl/Cmd + Shift + F</li>
+                        <li>Toggle sidebar: Ctrl/Cmd + B</li>
+                        <li>Refresh preview: F5</li>
+                    </ul>
+                </div>
+                <div class="info-block">
+                    <h4><i class="fas fa-route"></i> Guide</h4>
+                    <ul>
+                        <li>Create/import files in the sidebar.</li>
+                        <li>Use tabs to edit; Run or Refresh to update preview.</li>
+                        <li>Console button shows logs/errors from preview.</li>
+                        <li>Markdown files auto-open a live MD preview tab.</li>
+                        <li>Export icon on tabs downloads the file.</li>
+                    </ul>
+                </div>
+                <div class="info-block">
+                    <h4><i class="fas fa-user-astronaut"></i> About Maker</h4>
+                    <p>Built by Ashish Gupta.</p>
+                    <div class="link-list">
+                        <a href="https://bitcodeashishcloud.github.io/Ashish-Gupta/" target="_blank" rel="noopener" class="pill-link"><i class="fas fa-globe"></i> Portfolio</a>
+                        <a href="https://github.com/bitcodeAShishcloud" target="_blank" rel="noopener" class="pill-link"><i class="fab fa-github"></i> GitHub</a>
+                        <a href="https://www.linkedin.com/in/ashish-gupta-037973259/" target="_blank" rel="noopener" class="pill-link"><i class="fab fa-linkedin"></i> LinkedIn</a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>
