@@ -7,6 +7,11 @@ const DEFAULT_FILES = [
 
 const APP_STATE_KEY = 'liveCompilerProStateV1';
 const APP_STATE_TTL_MS = 30 * 60 * 1000;
+const PRETTIER_CORE_URL = 'https://unpkg.com/prettier@3.2.5/standalone.js';
+const PRETTIER_HTML_PARSER_URL = 'https://unpkg.com/prettier@3.2.5/plugins/html.js';
+const PRETTIER_BABEL_PARSER_URL = 'https://unpkg.com/prettier@3.2.5/plugins/babel.js';
+const PRETTIER_POSTCSS_PARSER_URL = 'https://unpkg.com/prettier@3.2.5/plugins/postcss.js';
+const PRETTIER_MARKDOWN_PARSER_URL = 'https://unpkg.com/prettier@3.2.5/plugins/markdown.js';
 
 function getDefaultFilesCopy() {
     return JSON.parse(JSON.stringify(DEFAULT_FILES));
@@ -17,6 +22,8 @@ const state = {
     activeFileId: 1,
     selectedFileType: 'html',
     consoleVisible: true,
+    consoleHeight: 200,
+    consoleExpanded: false,
     sidebarVisible: true,
     autoRun: false,
     sectionCollapsed: {},
@@ -68,6 +75,11 @@ let isRestoringHistory = false;
 const SIDEBAR_MIN_WIDTH = 180;
 const SIDEBAR_MAX_WIDTH = 420;
 const ACTIVITY_BAR_WIDTH = 52;
+const CONSOLE_MIN_HEIGHT = 120;
+const CONSOLE_MAX_RATIO = 0.75;
+const DEFAULT_CONSOLE_HEIGHT = 200;
+const CONSOLE_KEYSTEP = 12;
+const CONSOLE_KEYSTEP_FAST = 40;
 
 // ==================== DOM ELEMENTS ====================
 const fileTabsContainer = document.getElementById('fileTabs');
@@ -78,8 +90,11 @@ const previewFrame = document.getElementById('previewFrame');
 const previewArea = document.getElementById('previewArea');
 const mainResizer = document.getElementById('resizer');
 const previewToggleIcon = document.getElementById('previewToggleIcon');
+const consoleFocusIcon = document.getElementById('consoleFocusIcon');
 const consoleOutput = document.getElementById('consoleOutput');
 const consolePanel = document.getElementById('consolePanel');
+const consoleResizer = document.getElementById('consoleResizer');
+const consoleResizeHint = document.getElementById('consoleResizeHint');
 const addFileModal = document.getElementById('addFileModal');
 const importFileInput = document.getElementById('importFileInput');
 const filesPanel = document.getElementById('filesPanel');
@@ -94,6 +109,8 @@ const toastMessage = document.getElementById('toastMessage');
 const editorArea = document.querySelector('.editor-area');
 let pyodideReadyPromise = null;
 let persistTimer = null;
+let prettierReadyPromise = null;
+let blackReadyPromise = null;
 
 function setupModalDismiss() {
     const infoModal = document.getElementById('infoModal');
@@ -123,6 +140,8 @@ function persistStateNow() {
             activeFileId: state.activeFileId,
             selectedFileType: state.selectedFileType,
             consoleVisible: state.consoleVisible,
+            consoleHeight: state.consoleHeight,
+            consoleExpanded: state.consoleExpanded,
             autoRun: state.autoRun,
             sectionCollapsed: state.sectionCollapsed,
             sidebarWidth: state.sidebarWidth,
@@ -168,6 +187,8 @@ function restoreStateFromStorage() {
         if (typeof savedState.activeFileId === 'number') state.activeFileId = savedState.activeFileId;
         if (typeof savedState.selectedFileType === 'string') state.selectedFileType = savedState.selectedFileType;
         if (typeof savedState.consoleVisible === 'boolean') state.consoleVisible = savedState.consoleVisible;
+        if (typeof savedState.consoleHeight === 'number') state.consoleHeight = savedState.consoleHeight;
+        if (typeof savedState.consoleExpanded === 'boolean') state.consoleExpanded = savedState.consoleExpanded;
         // Force manual-run mode regardless of previously persisted value.
         state.autoRun = false;
         if (savedState.sectionCollapsed && typeof savedState.sectionCollapsed === 'object') {
@@ -204,16 +225,15 @@ function init() {
     setupConsoleIntercept();
     updatePreview();
     applyPreviewLayout();
+    applyConsoleHeight();
     setupSidebarResizer();
     setupResizer();
+    setupConsoleResizer();
     setupKeyboardShortcuts();
     setupModalDismiss();
-
-    if (!state.consoleVisible) {
-        consolePanel.classList.add('collapsed');
-        const icon = document.getElementById('consoleToggleIcon');
-        icon.className = 'fas fa-chevron-up';
-    }
+    updateConsoleToggleIcon();
+    updateConsoleFocusIcon();
+    window.addEventListener('resize', applyConsoleHeight);
 
     window.addEventListener('beforeunload', () => {
         persistStateNow();
@@ -676,11 +696,11 @@ function handleTabKey(event, fileId) {
 }
 
 // ==================== FORMATTER ====================
-function formatCurrentFile() {
+async function formatCurrentFile() {
     const file = state.files.find(f => f.id === state.activeFileId);
     if (!file) return;
 
-    const formatted = formatContent(file.type, file.content);
+    const formatted = await formatContent(file.type, file.content);
     if (formatted == null) {
         showToast('Formatting not available for this file type', 'warning');
         return;
@@ -699,9 +719,20 @@ function formatCurrentFile() {
     schedulePersistState();
 }
 
-function formatContent(type, content) {
+async function formatContent(type, content) {
     if (!content) return content;
     const clean = content.replace(/\r\n/g, '\n');
+
+    // Try Prettier first
+    const prettierResult = await formatWithPrettier(type, clean);
+    if (prettierResult !== null) return prettierResult;
+
+    if (type === 'python') {
+        const pythonResult = await formatPythonWithBlack(clean);
+        if (pythonResult !== null) return pythonResult;
+    }
+
+    // Fallback lightweight formatter if Prettier unavailable
     if (type === 'js' || type === 'css' || type === 'react' || type === 'node' || type === 'c' || type === 'cpp' || type === 'csharp' || type === 'java') {
         return formatBraced(clean, 4);
     }
@@ -1057,9 +1088,8 @@ function ensureOutputPanelsVisible() {
 
     if (!state.consoleVisible) {
         state.consoleVisible = true;
-        consolePanel.classList.remove('collapsed');
-        const icon = document.getElementById('consoleToggleIcon');
-        icon.className = 'fas fa-chevron-down';
+        applyConsoleHeight();
+        updateConsoleToggleIcon();
     }
 }
 
@@ -1084,6 +1114,7 @@ function applyPreviewLayout() {
 
     updatePreviewToggleIcon();
     updatePreviewToggleAria();
+    applyConsoleHeight();
 }
 
 function togglePreviewArea() {
@@ -1193,16 +1224,302 @@ function addConsoleLog(level, args) {
     consoleOutput.scrollTop = consoleOutput.scrollHeight;
 }
 
+function applyConsoleHeight() {
+    if (!consolePanel || !consoleResizer) return;
+    if (!state.previewVisible) {
+        consolePanel.style.height = '0px';
+        consolePanel.classList.add('collapsed');
+        consoleResizer.classList.add('hidden');
+        consoleResizer.classList.remove('active');
+        updateConsoleResizerAria(CONSOLE_MIN_HEIGHT, CONSOLE_MIN_HEIGHT, CONSOLE_MIN_HEIGHT);
+        hideConsoleHint();
+        return;
+    }
+
+    previewArea.classList.toggle('console-only', state.consoleExpanded);
+
+    if (state.consoleExpanded) {
+        consolePanel.style.height = '100%';
+        consolePanel.classList.remove('collapsed');
+        consoleResizer.classList.add('hidden');
+        hideConsoleHint();
+        updateConsoleResizerAria(100, 0, 100);
+        return;
+    }
+
+    const maxHeight = getConsoleMaxHeight();
+    const clamped = Math.min(maxHeight, Math.max(CONSOLE_MIN_HEIGHT, state.consoleHeight || DEFAULT_CONSOLE_HEIGHT));
+    state.consoleHeight = clamped;
+
+    const visible = state.consoleVisible;
+    consolePanel.style.height = visible ? `${clamped}px` : '0px';
+    consolePanel.classList.toggle('collapsed', !visible);
+    consoleResizer.classList.toggle('hidden', !visible);
+    if (!visible) {
+        consoleResizer.classList.remove('active');
+    }
+
+    updateConsoleResizerAria(clamped, CONSOLE_MIN_HEIGHT, maxHeight);
+    positionConsoleHint(clamped);
+}
+
+function setupConsoleResizer() {
+    if (!consoleResizer) return;
+    let isResizing = false;
+    let startY = 0;
+    let startHeight = DEFAULT_CONSOLE_HEIGHT;
+
+    consoleResizer.addEventListener('mousedown', (e) => {
+        if (!state.consoleVisible) return;
+        isResizing = true;
+        startY = e.clientY;
+        startHeight = state.consoleHeight || DEFAULT_CONSOLE_HEIGHT;
+        document.body.style.cursor = 'row-resize';
+        consoleResizer.classList.add('active');
+        showConsoleHint(startHeight);
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing || !state.consoleVisible) return;
+        const delta = startY - e.clientY;
+        const target = startHeight + delta;
+        const maxHeight = getConsoleMaxHeight();
+        const newHeight = Math.max(CONSOLE_MIN_HEIGHT, Math.min(maxHeight, target));
+        state.consoleHeight = newHeight;
+        applyConsoleHeight();
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (!isResizing) return;
+        isResizing = false;
+        document.body.style.cursor = 'default';
+        consoleResizer.classList.remove('active');
+        hideConsoleHint();
+        schedulePersistState();
+    });
+
+    consoleResizer.addEventListener('dblclick', () => {
+        state.consoleHeight = Math.min(getConsoleMaxHeight(), DEFAULT_CONSOLE_HEIGHT);
+        applyConsoleHeight();
+        schedulePersistState();
+    });
+
+    consoleResizer.addEventListener('keydown', (e) => {
+        if (!state.consoleVisible) return;
+        const fast = e.shiftKey;
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            adjustConsoleHeightBy(fast ? CONSOLE_KEYSTEP_FAST : CONSOLE_KEYSTEP);
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            adjustConsoleHeightBy(fast ? -CONSOLE_KEYSTEP_FAST : -CONSOLE_KEYSTEP);
+        } else if (e.key === 'Home') {
+            e.preventDefault();
+            state.consoleHeight = CONSOLE_MIN_HEIGHT;
+            applyConsoleHeight();
+            schedulePersistState();
+        } else if (e.key === 'End') {
+            e.preventDefault();
+            state.consoleHeight = getConsoleMaxHeight();
+            applyConsoleHeight();
+            schedulePersistState();
+        } else if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            state.consoleHeight = Math.min(getConsoleMaxHeight(), DEFAULT_CONSOLE_HEIGHT);
+            applyConsoleHeight();
+            schedulePersistState();
+        }
+    });
+}
+
 function toggleConsole() {
     state.consoleVisible = !state.consoleVisible;
-    consolePanel.classList.toggle('collapsed', !state.consoleVisible);
-    
+    if (!state.consoleVisible) {
+        state.consoleExpanded = false;
+    }
+    applyConsoleHeight();
+    updateConsoleToggleIcon();
+    updateConsoleFocusIcon();
+    schedulePersistState();
+}
+
+function updateConsoleToggleIcon() {
     const icon = document.getElementById('consoleToggleIcon');
-    icon.className = state.consoleVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+    if (icon) {
+        icon.className = state.consoleVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+    }
     document.querySelectorAll('.console-toggle-btn').forEach(btn => {
         btn.setAttribute('aria-pressed', String(state.consoleVisible));
     });
+}
+
+function toggleConsoleFocus() {
+    if (!state.consoleVisible) {
+        state.consoleVisible = true;
+    }
+    state.consoleExpanded = !state.consoleExpanded;
+    applyConsoleHeight();
+    updateConsoleFocusIcon();
     schedulePersistState();
+}
+
+function updateConsoleFocusIcon() {
+    const btn = document.getElementById('consoleFocusButton');
+    if (btn) {
+        btn.setAttribute('aria-pressed', String(state.consoleExpanded));
+    }
+    if (consoleFocusIcon) {
+        consoleFocusIcon.className = state.consoleExpanded ? 'fas fa-compress-alt' : 'fas fa-expand-alt';
+    }
+}
+
+function adjustConsoleHeightBy(delta) {
+    const maxHeight = getConsoleMaxHeight();
+    const next = Math.min(maxHeight, Math.max(CONSOLE_MIN_HEIGHT, (state.consoleHeight || DEFAULT_CONSOLE_HEIGHT) + delta));
+    state.consoleHeight = next;
+    applyConsoleHeight();
+    schedulePersistState();
+}
+
+function getConsoleMaxHeight() {
+    const headerHeight = document.querySelector('.preview-header')?.offsetHeight || 0;
+    const resizerHeight = consoleResizer?.offsetHeight || 0;
+    const areaHeight = previewArea?.clientHeight || 0;
+    const available = Math.max(0, areaHeight - headerHeight - resizerHeight - 24);
+    return Math.max(CONSOLE_MIN_HEIGHT, available * CONSOLE_MAX_RATIO);
+}
+
+function updateConsoleResizerAria(value, min, max) {
+    if (!consoleResizer) return;
+    consoleResizer.setAttribute('aria-valuenow', Math.round(value));
+    consoleResizer.setAttribute('aria-valuemin', Math.round(min));
+    consoleResizer.setAttribute('aria-valuemax', Math.round(max));
+}
+
+async function loadPrettierOnce() {
+    if (prettierReadyPromise) return prettierReadyPromise;
+
+    const loadScript = (src) => new Promise((resolve, reject) => {
+        const existing = Array.from(document.scripts).find(s => s.src === src);
+        if (existing) {
+            if (existing.dataset.loaded === 'true') return resolve();
+            existing.addEventListener('load', () => resolve());
+            existing.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)));
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+        script.dataset.loaded = 'false';
+        script.onload = () => {
+            script.dataset.loaded = 'true';
+            resolve();
+        };
+        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(script);
+    });
+
+    prettierReadyPromise = (async () => {
+        await loadScript(PRETTIER_CORE_URL);
+        await loadScript(PRETTIER_HTML_PARSER_URL);
+        await loadScript(PRETTIER_BABEL_PARSER_URL);
+        await loadScript(PRETTIER_POSTCSS_PARSER_URL);
+        await loadScript(PRETTIER_MARKDOWN_PARSER_URL);
+
+        if (!globalThis.prettier || !globalThis.prettier.format || !globalThis.prettierPlugins) {
+            throw new Error('Prettier failed to initialize');
+        }
+        return globalThis.prettier;
+    })();
+
+    try {
+        return await prettierReadyPromise;
+    } catch (err) {
+        prettierReadyPromise = null;
+        return Promise.reject(err);
+    }
+}
+
+async function formatWithPrettier(type, content) {
+    const parserMap = {
+        html: 'html',
+        css: 'css',
+        js: 'babel',
+        json: 'json',
+        react: 'babel',
+        markdown: 'markdown'
+    };
+
+    const parser = parserMap[type];
+    if (!parser) return null;
+
+    try {
+        const prettier = await loadPrettierOnce();
+        const tabWidth = languageConfig[type]?.tabSize || 2;
+        return prettier.format(content, {
+            parser,
+            plugins: globalThis.prettierPlugins,
+            tabWidth,
+            useTabs: false,
+            bracketSpacing: true,
+            semi: true
+        });
+    } catch (err) {
+        addConsoleLog('warn', ['Prettier format failed, using fallback formatter.', String(err?.message || err)]);
+        return null;
+    }
+}
+
+async function ensureBlackLoaded(pyodide) {
+    if (blackReadyPromise) return blackReadyPromise;
+    blackReadyPromise = (async () => {
+        await pyodide.loadPackage('micropip');
+        await pyodide.runPythonAsync(
+            "import micropip\nawait micropip.install('black==23.12.1')"
+        );
+    })();
+
+    try {
+        return await blackReadyPromise;
+    } catch (err) {
+        blackReadyPromise = null;
+        throw err;
+    }
+}
+
+async function formatPythonWithBlack(content) {
+    try {
+        const pyodide = await loadPyodideOnce();
+        await ensureBlackLoaded(pyodide);
+        const pyCode = `import black\nfrom black.mode import Mode\nresult = black.format_str(${JSON.stringify(content)}, mode=Mode())`;
+        const result = await pyodide.runPythonAsync(pyCode + "\nresult");
+        return typeof result === 'string' ? result : String(result);
+    } catch (err) {
+        addConsoleLog('warn', ['Black formatting failed, falling back.', String(err?.message || err)]);
+        return null;
+    }
+}
+
+function showConsoleHint(height) {
+    if (!consoleResizeHint || !state.consoleVisible) return;
+    consoleResizeHint.textContent = `${Math.round(height)} px`;
+    consoleResizeHint.classList.add('visible');
+    positionConsoleHint(height);
+}
+
+function hideConsoleHint() {
+    if (!consoleResizeHint) return;
+    consoleResizeHint.classList.remove('visible');
+}
+
+function positionConsoleHint(height) {
+    if (!consoleResizeHint || !previewArea) return;
+    const resizerHeight = consoleResizer?.offsetHeight || 0;
+    const areaHeight = previewArea.clientHeight || 0;
+    const offsetFromBottom = (state.consoleVisible ? height : 0) + resizerHeight + 8;
+    const top = Math.max(8, areaHeight - offsetFromBottom);
+    consoleResizeHint.style.top = `${top}px`;
 }
 
 function clearConsole() {
