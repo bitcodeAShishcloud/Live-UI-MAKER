@@ -533,21 +533,6 @@ select:focus-visible,
     flex-direction: column;
     border-left: 1px solid var(--border-color);
     min-width: 300px;
-    position: relative;
-}
-
-.preview-area.console-only .preview-frame,
-.preview-area.console-only .console-resizer {
-    display: none;
-}
-
-.preview-area.console-only .console-panel {
-    height: 100%;
-    flex: 1;
-}
-
-.preview-area.console-only .console-output {
-    flex: 1;
 }
 
 .preview-area.hidden {
@@ -600,7 +585,7 @@ select:focus-visible,
 
 /* ==================== CONSOLE PANEL ==================== */
 .console-panel {
-    height: var(--console-height, 200px);
+    height: 200px;
     background: var(--bg-primary);
     border-top: 1px solid var(--border-color);
     display: flex;
@@ -611,61 +596,6 @@ select:focus-visible,
 .console-panel.collapsed {
     height: 0;
     overflow: hidden;
-}
-
-.console-resizer {
-    height: 10px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-    cursor: row-resize;
-    flex-shrink: 0;
-    transition: background 0.15s ease;
-    position: relative;
-}
-
-.console-resizer::before {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: 56px;
-    height: 4px;
-    border-radius: 999px;
-    background: var(--border-color);
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.05);
-}
-
-.console-resizer:hover,
-.console-resizer.active {
-    background: linear-gradient(180deg, rgba(0,122,204,0.35), rgba(0,122,204,0.1));
-}
-
-.console-resizer.hidden {
-    display: none;
-}
-
-.console-resize-hint {
-    position: absolute;
-    right: 12px;
-    min-width: 64px;
-    padding: 6px 10px;
-    border-radius: 6px;
-    background: rgba(0, 0, 0, 0.7);
-    color: #f5f5f5;
-    font-size: 12px;
-    font-weight: 600;
-    text-align: center;
-    pointer-events: none;
-    opacity: 0;
-    transform: translateY(4px);
-    transition: opacity 0.15s ease, transform 0.15s ease;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-    z-index: 2;
-}
-
-.console-resize-hint.visible {
-    opacity: 1;
-    transform: translateY(0);
 }
 
 .console-header {
@@ -867,6 +797,60 @@ select:focus-visible,
     outline: none;
     border-color: var(--accent);
 }
+
+/* Hamburger button (hidden on desktop) */
+.hamburger-btn {
+    display: none;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    padding: 6px 8px;
+    cursor: pointer;
+}
+
+/* Mobile-specific layout adjustments */
+@media (max-width: 900px) {
+    .header { padding: 0 10px; }
+    .hamburger-btn { display: inline-flex; align-items: center; margin-right: 8px; }
+    .status-indicator { display: none; }
+    .header-actions .ml-5 { display: none; }
+    .btn { padding: 8px; }
+
+    .main-container { flex-direction: column; height: calc(100vh - 50px); }
+
+    /* Hide left sidebar from normal flow (overlay will be used) */
+    .left-sidebar { display: none; }
+
+    /* Remove resizers on mobile */
+    .sidebar-resizer, .resizer { display: none; }
+
+    /* Editor on top, preview below */
+    .editor-area { order: 1; height: 55vh; }
+    .preview-area { order: 2; width: 100%; min-width: 0; border-left: none; border-top: 1px solid var(--border-color); height: 45vh; }
+    .preview-frame { height: 100%; }
+
+    /* Make editor stretch and allow scrolling */
+    .editor-content { height: 100%; }
+    .code-editor .code, .code-editor textarea { height: 100%; }
+
+    /* Compact the editor tabs */
+    .editor-tab { min-width: 110px; padding: 10px 12px; font-size: 0.85rem; }
+
+    /* Mobile sidebar overlay */
+    .left-sidebar.mobile-open { display: block; position: fixed; top: 50px; left: 0; height: calc(100% - 50px); z-index: 2000; width: 78%; max-width: 360px; box-shadow: 2px 0 18px rgba(0,0,0,0.6); }
+    .left-sidebar.mobile-open .activity-bar { display: flex; }
+    .mobile-backdrop { display: block; position: fixed; inset: 50px 0 0 0; background: rgba(0,0,0,0.45); z-index: 1500; opacity: 0; visibility: hidden; transition: opacity 0.2s; }
+    .mobile-backdrop.open { opacity: 1; visibility: visible; }
+
+    /* Hide import activity by default to keep only files tab visible */
+    .activity-btn:not(#activityFilesBtn) { display: none; }
+    .sidebar { width: 100%; max-width: none; }
+    .sidebar.collapsed { transform: translateX(0); }
+}
+
+/* Ensure mobile backdrop hidden on desktop */
+.mobile-backdrop { display: none; }
 
 .file-type-grid {
     display: grid;
