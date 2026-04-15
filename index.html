@@ -4,17 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>⚡ Live Code Compiler Pro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <!-- Header -->
     <header class="header">
-        <button id="hamburgerBtn" class="hamburger-btn" type="button" aria-label="Open menu" onclick="toggleSidebarMobile()">
-            <i class="fas fa-bars"></i>
-        </button>
-
         <button class="logo-button" type="button" onclick="openInfoModal()" aria-label="Open help and about popup">
             <i class="fas fa-bolt"></i>
             <span>Live Compiler Pro</span>
@@ -134,7 +130,10 @@
                         <i class="fas fa-sync"></i>
                     </button>
                     <button onclick="openInNewTab()" title="Open in New Tab" aria-label="Open preview in new tab">
-                        <i class="fas fa-external-link-alt"></i>
+                        <i class="fas fa-up-right-from-square"></i>
+                    </button>
+                    <button id="consoleFocusButton" onclick="toggleConsoleFocus()" title="Console focus (expand console / restore preview)" aria-label="Console focus" aria-pressed="false">
+                        <i class="fas fa-up-right-and-down-left-from-center" id="consoleFocusIcon"></i>
                     </button>
                     <button class="console-toggle-btn" onclick="toggleConsole()" title="Toggle Console" aria-label="Toggle console" aria-pressed="true">
                         <i class="fas fa-terminal"></i>
@@ -142,6 +141,8 @@
                 </div>
             </div>
             <iframe class="preview-frame" id="previewFrame" title="Live preview"></iframe>
+            <div class="console-resizer" id="consoleResizer" title="Drag or use arrow keys to resize console" aria-label="Resize console" role="separator" aria-orientation="horizontal" tabindex="0"></div>
+            <div class="console-resize-hint" id="consoleResizeHint" aria-hidden="true"></div>
             
             <!-- Console Panel -->
             <div class="console-panel" id="consolePanel">
@@ -165,9 +166,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Mobile sidebar backdrop -->
-    <div id="mobileSidebarBackdrop" class="mobile-backdrop" onclick="toggleSidebarMobile()" aria-hidden="true"></div>
 
     <!-- Add File Modal -->
     <div class="modal-overlay" id="addFileModal">

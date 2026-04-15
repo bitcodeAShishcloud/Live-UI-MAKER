@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Markdown Live Preview</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --bg: #0f1115;
-            --panel: #161920;
-            --border: #20242d;
-            --accent: #36b37e;
-            --text: #e7e9ed;
-            --muted: #9aa4b5;
+            --bg: #09090b;
+            --panel: #18181b;
+            --border: #27272a;
+            --accent: #6366f1;
+            --text: #f4f4f5;
+            --muted: #a1a1aa;
         }
         * { box-sizing: border-box; }
         body {
@@ -30,10 +30,13 @@
             align-items: center;
             justify-content: space-between;
             padding: 0 18px;
-            background: var(--panel);
+            background: rgba(24, 24, 27, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border);
+            z-index: 10;
         }
-        .title { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+        .title { display: flex; align-items: center; gap: 10px; font-weight: 600; font-family: 'Outfit', sans-serif;}
         .file-name { color: var(--muted); font-size: 0.9rem; }
         .status { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.9rem; }
         .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
@@ -46,14 +49,20 @@
             resize: none; font-family: 'Fira Code', 'Consolas', monospace;
         }
         .preview {
-            background: #0d0f14;
-            padding: 16px;
+            background: #09090b;
+            padding: 24px;
             overflow: auto;
+            line-height: 1.6;
         }
-        .preview h1, .preview h2, .preview h3, .preview h4 { margin-top: 1.2em; }
-        .preview pre { background: #11131a; padding: 12px; border-radius: 6px; overflow: auto; }
-        .preview code { background: #11131a; padding: 2px 4px; border-radius: 4px; }
-        .preview a { color: #4da3ff; }
+        .preview h1, .preview h2, .preview h3, .preview h4 { margin-top: 1.2em; font-family: 'Outfit', sans-serif;}
+        .preview pre { background: #18181b; padding: 16px; border-radius: 8px; overflow: auto; border: 1px solid var(--border); }
+        .preview code { background: #18181b; padding: 2px 6px; border-radius: 6px; font-family: 'Fira Code', monospace; }
+        .preview a { color: #818cf8; text-decoration: none; }
+        .preview a:hover { text-decoration: underline; }
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 5px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
     </style>
 </head>
 <body>

@@ -1,27 +1,110 @@
-// ==================== STATE MANAGEMENT ====================
 const DEFAULT_FILES = [
-    {
-        id: 1,
-        name: 'index.html',
-        type: 'html',
-        content: '<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="utf-8">\n  <meta name="viewport" content="width=device-width,initial-scale=1">\n  <title>Premium Starter — Live Preview</title>\n  <link rel="stylesheet" href="styles.css">\n</head>\n<body>\n  <main class="hero">\n    <div class="glass">\n      <h1>Welcome</h1>\n      <p class="lead">A premium gray glass-style starter template by <a href="https://bitcodeashishcloud.github.io/Ashish-Gupta/" class="author-link" target="_blank" rel="noopener">Ashish Gupta</a></p>\n      <button class="btn-primary" onclick="sayHello()">Click Me</button>\n      <div id="output" class="output"></div>\n    </div>\n  </main>\n  <script src="script.js"></script>\n</body>\n</html>'
-    },
-    {
-        id: 2,
-        name: 'styles.css',
-        type: 'css',
-        content: '/* Premium glass-style starter */\n*{box-sizing:border-box;margin:0;padding:0}html,body{height:100%}body{font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#f2f3f5 0%,#e9eaec 100%);color:#111} .hero{width:100%;padding:40px;display:flex;align-items:center;justify-content:center} .glass{width:min(980px,92%);padding:48px;border-radius:16px;background:rgba(255,255,255,0.55);box-shadow:0 10px 30px rgba(16,24,40,0.12),inset 0 1px 0 rgba(255,255,255,0.6);backdrop-filter:blur(8px) saturate(1.05);-webkit-backdrop-filter:blur(8px) saturate(1.05);border:1px solid rgba(255,255,255,0.6)} h1{font-size:2.25rem;margin-bottom:8px;color:#0b1630} .lead{margin-bottom:20px;color:#223;opacity:0.9} .author-link{color:#0b74ff;text-decoration:none;font-weight:600} .author-link:hover{opacity:0.9;text-decoration:none} .btn-primary{background:#0b74ff;color:#fff;padding:12px 18px;border-radius:10px;border:none;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(11,116,255,0.18);transition:transform .12s ease,box-shadow .12s} .btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(11,116,255,0.18)} .output{margin-top:16px;color:#056; font-weight:600} @media (max-width:600px){ .glass{padding:20px;border-radius:12px} h1{font-size:1.6rem} .hero{padding:20px} }'
-    },
-    {
-        id: 3,
-        name: 'script.js',
-        type: 'js',
-        content: 'function sayHello(){\n  console.log("Hello from premium template ✨");\n  const out = document.getElementById("output");\n  if(out) out.innerHTML = "<span style=\"color:#0b74ff; font-weight:700\">Button clicked — Premium!</span>";\n}\n\nconsole.log("Premium template loaded");'
-    }
+    { id: 1, name: 'index.html', type: 'html', content: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern App</title>
+</head>
+<body>
+    <div class="glass-container">
+        <div class="card">
+            <h1>Welcome to Pro ⚡</h1>
+            <p>Experience the ultimate live coding environment.</p>
+            <button onclick="sayHello()">Get Started</button>
+            <div id="output"></div>
+        </div>
+    </div>
+</body>
+</html>` },
+    { id: 2, name: 'styles.css', type: 'css', content: `body {
+    margin: 0;
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.glass-container {
+    padding: 2px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 100%);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 22px;
+    padding: 40px;
+    text-align: center;
+    max-width: 400px;
+}
+
+h1 {
+    font-size: 2.2rem;
+    margin: 0 0 10px 0;
+    font-weight: 700;
+}
+
+p {
+    margin: 0 0 30px 0;
+    opacity: 0.9;
+    line-height: 1.5;
+}
+
+button {
+    background: white;
+    color: #4f46e5;
+    border: none;
+    padding: 14px 32px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+button:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+#output {
+    margin-top: 24px;
+    font-weight: 500;
+    border-radius: 8px;
+}` },
+    { id: 3, name: 'script.js', type: 'js', content: `function sayHello() {
+    const btn = document.querySelector('button');
+    btn.textContent = 'Awesome! 🎉';
+    btn.style.background = '#10b981';
+    btn.style.color = 'white';
+    
+    const output = document.getElementById('output');
+    output.style.padding = '12px';
+    output.style.background = 'rgba(255,255,255,0.1)';
+    output.innerHTML = 'Compilation successful. Start building!';
+    
+    console.log("Interactive component triggered!");
+}
+
+console.log("Ready to code! 🚀");
+` }
 ];
 
 const APP_STATE_KEY = 'liveCompilerProStateV1';
 const APP_STATE_TTL_MS = 30 * 60 * 1000;
+const PRETTIER_CORE_URL = 'https://unpkg.com/prettier@3.2.5/standalone.js';
+const PRETTIER_HTML_PARSER_URL = 'https://unpkg.com/prettier@3.2.5/plugins/html.js';
+const PRETTIER_BABEL_PARSER_URL = 'https://unpkg.com/prettier@3.2.5/plugins/babel.js';
+const PRETTIER_POSTCSS_PARSER_URL = 'https://unpkg.com/prettier@3.2.5/plugins/postcss.js';
+const PRETTIER_MARKDOWN_PARSER_URL = 'https://unpkg.com/prettier@3.2.5/plugins/markdown.js';
 
 function getDefaultFilesCopy() {
     return JSON.parse(JSON.stringify(DEFAULT_FILES));
@@ -32,6 +115,8 @@ const state = {
     activeFileId: 1,
     selectedFileType: 'html',
     consoleVisible: true,
+    consoleHeight: 200,
+    consoleExpanded: false,
     sidebarVisible: true,
     autoRun: false,
     sectionCollapsed: {},
@@ -83,6 +168,11 @@ let isRestoringHistory = false;
 const SIDEBAR_MIN_WIDTH = 180;
 const SIDEBAR_MAX_WIDTH = 420;
 const ACTIVITY_BAR_WIDTH = 52;
+const CONSOLE_MIN_HEIGHT = 120;
+const CONSOLE_MAX_RATIO = 0.75;
+const DEFAULT_CONSOLE_HEIGHT = 200;
+const CONSOLE_KEYSTEP = 12;
+const CONSOLE_KEYSTEP_FAST = 40;
 
 // ==================== DOM ELEMENTS ====================
 const fileTabsContainer = document.getElementById('fileTabs');
@@ -93,8 +183,11 @@ const previewFrame = document.getElementById('previewFrame');
 const previewArea = document.getElementById('previewArea');
 const mainResizer = document.getElementById('resizer');
 const previewToggleIcon = document.getElementById('previewToggleIcon');
+const consoleFocusIcon = document.getElementById('consoleFocusIcon');
 const consoleOutput = document.getElementById('consoleOutput');
 const consolePanel = document.getElementById('consolePanel');
+const consoleResizer = document.getElementById('consoleResizer');
+const consoleResizeHint = document.getElementById('consoleResizeHint');
 const addFileModal = document.getElementById('addFileModal');
 const importFileInput = document.getElementById('importFileInput');
 const filesPanel = document.getElementById('filesPanel');
@@ -109,6 +202,8 @@ const toastMessage = document.getElementById('toastMessage');
 const editorArea = document.querySelector('.editor-area');
 let pyodideReadyPromise = null;
 let persistTimer = null;
+let prettierReadyPromise = null;
+let blackReadyPromise = null;
 
 function setupModalDismiss() {
     const infoModal = document.getElementById('infoModal');
@@ -138,6 +233,8 @@ function persistStateNow() {
             activeFileId: state.activeFileId,
             selectedFileType: state.selectedFileType,
             consoleVisible: state.consoleVisible,
+            consoleHeight: state.consoleHeight,
+            consoleExpanded: state.consoleExpanded,
             autoRun: state.autoRun,
             sectionCollapsed: state.sectionCollapsed,
             sidebarWidth: state.sidebarWidth,
@@ -183,6 +280,8 @@ function restoreStateFromStorage() {
         if (typeof savedState.activeFileId === 'number') state.activeFileId = savedState.activeFileId;
         if (typeof savedState.selectedFileType === 'string') state.selectedFileType = savedState.selectedFileType;
         if (typeof savedState.consoleVisible === 'boolean') state.consoleVisible = savedState.consoleVisible;
+        if (typeof savedState.consoleHeight === 'number') state.consoleHeight = savedState.consoleHeight;
+        if (typeof savedState.consoleExpanded === 'boolean') state.consoleExpanded = savedState.consoleExpanded;
         // Force manual-run mode regardless of previously persisted value.
         state.autoRun = false;
         if (savedState.sectionCollapsed && typeof savedState.sectionCollapsed === 'object') {
@@ -210,18 +309,8 @@ function resetWorkspaceToDefaults() {
 // ==================== INITIALIZATION ====================
 function init() {
     restoreStateFromStorage();
-    // Always start with sidebar and console closed by default on open/refresh
-    state.sidebarVisible = false;
-    state.consoleVisible = false;
     applySidebarWidth(state.sidebarWidth);
-    // Do not force-open the sidebar on init. Set the sidebar/tab UI without opening it.
-    const isFilesTab = state.activeSidebarTab === 'files';
-    // Panels should only be marked active when sidebar is visible; leave buttons inactive by default
-    filesPanel.classList.toggle('active', isFilesTab && state.sidebarVisible);
-    importPanel.classList.toggle('active', !isFilesTab && state.sidebarVisible);
-    activityFilesBtn.classList.toggle('active', false);
-    activityImportBtn.classList.toggle('active', false);
-    if (addFileBtn) addFileBtn.style.display = isFilesTab && state.sidebarVisible ? 'flex' : 'none';
+    switchSidebarTab(state.activeSidebarTab, true);
     renderFileTabs();
     renderEditorTabs();
     renderEditors();
@@ -229,20 +318,15 @@ function init() {
     setupConsoleIntercept();
     updatePreview();
     applyPreviewLayout();
+    applyConsoleHeight();
     setupSidebarResizer();
     setupResizer();
+    setupConsoleResizer();
     setupKeyboardShortcuts();
     setupModalDismiss();
-
-    // Apply responsive layout for mobile/tablet and listen for changes
-    applyResponsiveLayout();
-    window.addEventListener('resize', applyResponsiveLayout);
-
-    if (!state.consoleVisible) {
-        consolePanel.classList.add('collapsed');
-        const icon = document.getElementById('consoleToggleIcon');
-        icon.className = 'fas fa-chevron-up';
-    }
+    updateConsoleToggleIcon();
+    updateConsoleFocusIcon();
+    window.addEventListener('resize', applyConsoleHeight);
 
     window.addEventListener('beforeunload', () => {
         persistStateNow();
@@ -313,55 +397,7 @@ function switchSidebarTab(tab, forceOpen = false) {
         addFileBtn.style.display = isFiles ? 'flex' : 'none';
     }
 
-    // If on mobile, open the sidebar as an overlay so user can see the chosen tab
-    if (document.body.classList.contains('mobile') || window.innerWidth <= 900) {
-        leftSidebar.classList.add('mobile-open');
-        const backdrop = document.getElementById('mobileSidebarBackdrop');
-        if (backdrop) backdrop.classList.add('open');
-    }
     schedulePersistState();
-}
-
-/* Responsive helpers: toggle mobile sidebar overlay and apply layout on resize */
-function toggleSidebarMobile() {
-    const backdrop = document.getElementById('mobileSidebarBackdrop');
-    const isOpen = leftSidebar.classList.toggle('mobile-open');
-    if (backdrop) backdrop.classList.toggle('open', isOpen);
-}
-
-function applyResponsiveLayout() {
-    const isMobile = window.innerWidth <= 900;
-    if (isMobile) {
-        document.body.classList.add('mobile');
-        // ensure preview is visible and stacked
-        previewArea.classList.remove('hidden');
-        state.previewVisible = true;
-        // Force stacked full-width editor + preview (override inline widths)
-        if (editorArea) {
-            editorArea.style.width = '100%';
-            editorArea.style.height = '55vh';
-        }
-        if (previewArea) {
-            previewArea.style.width = '100%';
-            previewArea.style.height = '45vh';
-        }
-        if (mainResizer) mainResizer.classList.add('hidden');
-    } else {
-        document.body.classList.remove('mobile');
-        const backdrop = document.getElementById('mobileSidebarBackdrop');
-        if (backdrop) backdrop.classList.remove('open');
-        leftSidebar.classList.remove('mobile-open');
-        // Clear mobile inline sizing so desktop layout rules and JS-controlled widths apply
-        if (editorArea) {
-            editorArea.style.width = '';
-            editorArea.style.height = '';
-        }
-        if (previewArea) {
-            previewArea.style.width = '';
-            previewArea.style.height = '';
-        }
-        if (mainResizer) mainResizer.classList.remove('hidden');
-    }
 }
 
 function openImportPicker() {
@@ -753,11 +789,11 @@ function handleTabKey(event, fileId) {
 }
 
 // ==================== FORMATTER ====================
-function formatCurrentFile() {
+async function formatCurrentFile() {
     const file = state.files.find(f => f.id === state.activeFileId);
     if (!file) return;
 
-    const formatted = formatContent(file.type, file.content);
+    const formatted = await formatContent(file.type, file.content);
     if (formatted == null) {
         showToast('Formatting not available for this file type', 'warning');
         return;
@@ -776,9 +812,20 @@ function formatCurrentFile() {
     schedulePersistState();
 }
 
-function formatContent(type, content) {
+async function formatContent(type, content) {
     if (!content) return content;
     const clean = content.replace(/\r\n/g, '\n');
+
+    // Try Prettier first
+    const prettierResult = await formatWithPrettier(type, clean);
+    if (prettierResult !== null) return prettierResult;
+
+    if (type === 'python') {
+        const pythonResult = await formatPythonWithBlack(clean);
+        if (pythonResult !== null) return pythonResult;
+    }
+
+    // Fallback lightweight formatter if Prettier unavailable
     if (type === 'js' || type === 'css' || type === 'react' || type === 'node' || type === 'c' || type === 'cpp' || type === 'csharp' || type === 'java') {
         return formatBraced(clean, 4);
     }
@@ -1134,9 +1181,8 @@ function ensureOutputPanelsVisible() {
 
     if (!state.consoleVisible) {
         state.consoleVisible = true;
-        consolePanel.classList.remove('collapsed');
-        const icon = document.getElementById('consoleToggleIcon');
-        icon.className = 'fas fa-chevron-down';
+        applyConsoleHeight();
+        updateConsoleToggleIcon();
     }
 }
 
@@ -1161,6 +1207,7 @@ function applyPreviewLayout() {
 
     updatePreviewToggleIcon();
     updatePreviewToggleAria();
+    applyConsoleHeight();
 }
 
 function togglePreviewArea() {
@@ -1270,16 +1317,302 @@ function addConsoleLog(level, args) {
     consoleOutput.scrollTop = consoleOutput.scrollHeight;
 }
 
+function applyConsoleHeight() {
+    if (!consolePanel || !consoleResizer) return;
+    if (!state.previewVisible) {
+        consolePanel.style.height = '0px';
+        consolePanel.classList.add('collapsed');
+        consoleResizer.classList.add('hidden');
+        consoleResizer.classList.remove('active');
+        updateConsoleResizerAria(CONSOLE_MIN_HEIGHT, CONSOLE_MIN_HEIGHT, CONSOLE_MIN_HEIGHT);
+        hideConsoleHint();
+        return;
+    }
+
+    previewArea.classList.toggle('console-only', state.consoleExpanded);
+
+    if (state.consoleExpanded) {
+        consolePanel.style.height = '100%';
+        consolePanel.classList.remove('collapsed');
+        consoleResizer.classList.add('hidden');
+        hideConsoleHint();
+        updateConsoleResizerAria(100, 0, 100);
+        return;
+    }
+
+    const maxHeight = getConsoleMaxHeight();
+    const clamped = Math.min(maxHeight, Math.max(CONSOLE_MIN_HEIGHT, state.consoleHeight || DEFAULT_CONSOLE_HEIGHT));
+    state.consoleHeight = clamped;
+
+    const visible = state.consoleVisible;
+    consolePanel.style.height = visible ? `${clamped}px` : '0px';
+    consolePanel.classList.toggle('collapsed', !visible);
+    consoleResizer.classList.toggle('hidden', !visible);
+    if (!visible) {
+        consoleResizer.classList.remove('active');
+    }
+
+    updateConsoleResizerAria(clamped, CONSOLE_MIN_HEIGHT, maxHeight);
+    positionConsoleHint(clamped);
+}
+
+function setupConsoleResizer() {
+    if (!consoleResizer) return;
+    let isResizing = false;
+    let startY = 0;
+    let startHeight = DEFAULT_CONSOLE_HEIGHT;
+
+    consoleResizer.addEventListener('mousedown', (e) => {
+        if (!state.consoleVisible) return;
+        isResizing = true;
+        startY = e.clientY;
+        startHeight = state.consoleHeight || DEFAULT_CONSOLE_HEIGHT;
+        document.body.style.cursor = 'row-resize';
+        consoleResizer.classList.add('active');
+        showConsoleHint(startHeight);
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing || !state.consoleVisible) return;
+        const delta = startY - e.clientY;
+        const target = startHeight + delta;
+        const maxHeight = getConsoleMaxHeight();
+        const newHeight = Math.max(CONSOLE_MIN_HEIGHT, Math.min(maxHeight, target));
+        state.consoleHeight = newHeight;
+        applyConsoleHeight();
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (!isResizing) return;
+        isResizing = false;
+        document.body.style.cursor = 'default';
+        consoleResizer.classList.remove('active');
+        hideConsoleHint();
+        schedulePersistState();
+    });
+
+    consoleResizer.addEventListener('dblclick', () => {
+        state.consoleHeight = Math.min(getConsoleMaxHeight(), DEFAULT_CONSOLE_HEIGHT);
+        applyConsoleHeight();
+        schedulePersistState();
+    });
+
+    consoleResizer.addEventListener('keydown', (e) => {
+        if (!state.consoleVisible) return;
+        const fast = e.shiftKey;
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            adjustConsoleHeightBy(fast ? CONSOLE_KEYSTEP_FAST : CONSOLE_KEYSTEP);
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            adjustConsoleHeightBy(fast ? -CONSOLE_KEYSTEP_FAST : -CONSOLE_KEYSTEP);
+        } else if (e.key === 'Home') {
+            e.preventDefault();
+            state.consoleHeight = CONSOLE_MIN_HEIGHT;
+            applyConsoleHeight();
+            schedulePersistState();
+        } else if (e.key === 'End') {
+            e.preventDefault();
+            state.consoleHeight = getConsoleMaxHeight();
+            applyConsoleHeight();
+            schedulePersistState();
+        } else if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            state.consoleHeight = Math.min(getConsoleMaxHeight(), DEFAULT_CONSOLE_HEIGHT);
+            applyConsoleHeight();
+            schedulePersistState();
+        }
+    });
+}
+
 function toggleConsole() {
     state.consoleVisible = !state.consoleVisible;
-    consolePanel.classList.toggle('collapsed', !state.consoleVisible);
-    
+    if (!state.consoleVisible) {
+        state.consoleExpanded = false;
+    }
+    applyConsoleHeight();
+    updateConsoleToggleIcon();
+    updateConsoleFocusIcon();
+    schedulePersistState();
+}
+
+function updateConsoleToggleIcon() {
     const icon = document.getElementById('consoleToggleIcon');
-    icon.className = state.consoleVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+    if (icon) {
+        icon.className = state.consoleVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+    }
     document.querySelectorAll('.console-toggle-btn').forEach(btn => {
         btn.setAttribute('aria-pressed', String(state.consoleVisible));
     });
+}
+
+function toggleConsoleFocus() {
+    if (!state.consoleVisible) {
+        state.consoleVisible = true;
+    }
+    state.consoleExpanded = !state.consoleExpanded;
+    applyConsoleHeight();
+    updateConsoleFocusIcon();
     schedulePersistState();
+}
+
+function updateConsoleFocusIcon() {
+    const btn = document.getElementById('consoleFocusButton');
+    if (btn) {
+        btn.setAttribute('aria-pressed', String(state.consoleExpanded));
+    }
+    if (consoleFocusIcon) {
+        consoleFocusIcon.className = state.consoleExpanded ? 'fas fa-compress-alt' : 'fas fa-expand-alt';
+    }
+}
+
+function adjustConsoleHeightBy(delta) {
+    const maxHeight = getConsoleMaxHeight();
+    const next = Math.min(maxHeight, Math.max(CONSOLE_MIN_HEIGHT, (state.consoleHeight || DEFAULT_CONSOLE_HEIGHT) + delta));
+    state.consoleHeight = next;
+    applyConsoleHeight();
+    schedulePersistState();
+}
+
+function getConsoleMaxHeight() {
+    const headerHeight = document.querySelector('.preview-header')?.offsetHeight || 0;
+    const resizerHeight = consoleResizer?.offsetHeight || 0;
+    const areaHeight = previewArea?.clientHeight || 0;
+    const available = Math.max(0, areaHeight - headerHeight - resizerHeight - 24);
+    return Math.max(CONSOLE_MIN_HEIGHT, available * CONSOLE_MAX_RATIO);
+}
+
+function updateConsoleResizerAria(value, min, max) {
+    if (!consoleResizer) return;
+    consoleResizer.setAttribute('aria-valuenow', Math.round(value));
+    consoleResizer.setAttribute('aria-valuemin', Math.round(min));
+    consoleResizer.setAttribute('aria-valuemax', Math.round(max));
+}
+
+async function loadPrettierOnce() {
+    if (prettierReadyPromise) return prettierReadyPromise;
+
+    const loadScript = (src) => new Promise((resolve, reject) => {
+        const existing = Array.from(document.scripts).find(s => s.src === src);
+        if (existing) {
+            if (existing.dataset.loaded === 'true') return resolve();
+            existing.addEventListener('load', () => resolve());
+            existing.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)));
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+        script.dataset.loaded = 'false';
+        script.onload = () => {
+            script.dataset.loaded = 'true';
+            resolve();
+        };
+        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(script);
+    });
+
+    prettierReadyPromise = (async () => {
+        await loadScript(PRETTIER_CORE_URL);
+        await loadScript(PRETTIER_HTML_PARSER_URL);
+        await loadScript(PRETTIER_BABEL_PARSER_URL);
+        await loadScript(PRETTIER_POSTCSS_PARSER_URL);
+        await loadScript(PRETTIER_MARKDOWN_PARSER_URL);
+
+        if (!globalThis.prettier || !globalThis.prettier.format || !globalThis.prettierPlugins) {
+            throw new Error('Prettier failed to initialize');
+        }
+        return globalThis.prettier;
+    })();
+
+    try {
+        return await prettierReadyPromise;
+    } catch (err) {
+        prettierReadyPromise = null;
+        return Promise.reject(err);
+    }
+}
+
+async function formatWithPrettier(type, content) {
+    const parserMap = {
+        html: 'html',
+        css: 'css',
+        js: 'babel',
+        json: 'json',
+        react: 'babel',
+        markdown: 'markdown'
+    };
+
+    const parser = parserMap[type];
+    if (!parser) return null;
+
+    try {
+        const prettier = await loadPrettierOnce();
+        const tabWidth = languageConfig[type]?.tabSize || 2;
+        return prettier.format(content, {
+            parser,
+            plugins: globalThis.prettierPlugins,
+            tabWidth,
+            useTabs: false,
+            bracketSpacing: true,
+            semi: true
+        });
+    } catch (err) {
+        addConsoleLog('warn', ['Prettier format failed, using fallback formatter.', String(err?.message || err)]);
+        return null;
+    }
+}
+
+async function ensureBlackLoaded(pyodide) {
+    if (blackReadyPromise) return blackReadyPromise;
+    blackReadyPromise = (async () => {
+        await pyodide.loadPackage('micropip');
+        await pyodide.runPythonAsync(
+            "import micropip\nawait micropip.install('black==23.12.1')"
+        );
+    })();
+
+    try {
+        return await blackReadyPromise;
+    } catch (err) {
+        blackReadyPromise = null;
+        throw err;
+    }
+}
+
+async function formatPythonWithBlack(content) {
+    try {
+        const pyodide = await loadPyodideOnce();
+        await ensureBlackLoaded(pyodide);
+        const pyCode = `import black\nfrom black.mode import Mode\nresult = black.format_str(${JSON.stringify(content)}, mode=Mode())`;
+        const result = await pyodide.runPythonAsync(pyCode + "\nresult");
+        return typeof result === 'string' ? result : String(result);
+    } catch (err) {
+        addConsoleLog('warn', ['Black formatting failed, falling back.', String(err?.message || err)]);
+        return null;
+    }
+}
+
+function showConsoleHint(height) {
+    if (!consoleResizeHint || !state.consoleVisible) return;
+    consoleResizeHint.textContent = `${Math.round(height)} px`;
+    consoleResizeHint.classList.add('visible');
+    positionConsoleHint(height);
+}
+
+function hideConsoleHint() {
+    if (!consoleResizeHint) return;
+    consoleResizeHint.classList.remove('visible');
+}
+
+function positionConsoleHint(height) {
+    if (!consoleResizeHint || !previewArea) return;
+    const resizerHeight = consoleResizer?.offsetHeight || 0;
+    const areaHeight = previewArea.clientHeight || 0;
+    const offsetFromBottom = (state.consoleVisible ? height : 0) + resizerHeight + 8;
+    const top = Math.max(8, areaHeight - offsetFromBottom);
+    consoleResizeHint.style.top = `${top}px`;
 }
 
 function clearConsole() {
