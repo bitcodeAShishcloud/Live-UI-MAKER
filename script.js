@@ -356,6 +356,16 @@ function init() {
         persistStateNow();
     });
     
+    // Hide console by default on mobile
+    if (window.innerWidth <= 768) {
+        state.consoleVisible = false;
+        const consolePanel = document.getElementById('consolePanel');
+        if (consolePanel) {
+            consolePanel.classList.remove('mobile-visible');
+        }
+        updateConsoleToggleIcon();
+    }
+    
     // Select default file type
     selectFileType(state.selectedFileType || 'html');
 }
@@ -1455,6 +1465,29 @@ function toggleConsole() {
     if (!state.consoleVisible) {
         state.consoleExpanded = false;
     }
+    
+    // Mobile-specific handling
+    if (window.innerWidth <= 768) {
+        const consolePanel = document.getElementById('consolePanel');
+        const previewArea = document.getElementById('previewArea');
+        
+        if (consolePanel) {
+            if (state.consoleVisible) {
+                consolePanel.classList.add('mobile-visible');
+            } else {
+                consolePanel.classList.remove('mobile-visible');
+            }
+        }
+        
+        if (previewArea) {
+            if (state.consoleVisible) {
+                previewArea.classList.add('console-visible');
+            } else {
+                previewArea.classList.remove('console-visible');
+            }
+        }
+    }
+    
     applyConsoleHeight();
     updateConsoleToggleIcon();
     updateConsoleFocusIcon();
@@ -1648,6 +1681,56 @@ function clearConsole() {
 function setupAutoRun() {
     // Auto-run is handled by debounce on code change
 }
+
+function toggleRunMode() {
+    state.autoRun = !state.autoRun;
+    
+    const runModeText = document.getElementById('runModeText');
+    const autoRunIndicator = document.getElementById('autoRunIndicator');
+    const runModeToggle = document.querySelector('.run-mode-toggle');
+    
+    if (state.autoRun) {
+        // Switch to Auto mode
+        if (runModeText) runModeText.textContent = 'Run mode: Auto';
+        if (autoRunIndicator) {
+            autoRunIndicator.innerHTML = '<i class="fas fa-sync"></i><span>Auto Run</span>';
+            autoRunIndicator.classList.add('auto-mode');
+        }
+        if (runModeToggle) runModeToggle.classList.add('auto-mode');
+        
+        showToast('Auto-run enabled! Code runs on every change.', 'success');
+        
+        // Run code immediately when switching to auto
+        updatePreview();
+    } else {
+        // Switch to Manual mode
+        if (runModeText) runModeText.textContent = 'Run mode: Manual';
+        if (autoRunIndicator) {
+            autoRunIndicator.innerHTML = '<i class="fas fa-hand-paper"></i><span>Click Run</span>';
+            autoRunIndicator.classList.remove('auto-mode');
+        }
+        if (runModeToggle) runModeToggle.classList.remove('auto-mode');
+        
+        showToast('Manual mode enabled. Click Run to update.', 'info');
+    }
+    
+    schedulePersistState();
+}
+
+// Modify onCodeChange to support auto-run
+const _originalOnCodeChangeForAutoRun = onCodeChange;
+onCodeChange = function(fileId) {
+    _originalOnCodeChangeForAutoRun(fileId);
+    
+    // Auto-run if enabled
+    if (state.autoRun) {
+        // Debounce auto-run to avoid too many updates
+        clearTimeout(window.autoRunTimeout);
+        window.autoRunTimeout = setTimeout(() => {
+            updatePreview();
+        }, 1000); // 1 second debounce
+    }
+};
 
 // ==================== TOAST NOTIFICATION ====================
 function showToast(message, type = 'success') {
@@ -2188,6 +2271,54 @@ async function exportAllAsZip() {
 
 // ==================== START APPLICATION ====================
 init();
+
+// ==================== MOBILE MENU ====================
+function toggleMobileMenu() {
+    const menu = document.getElementById('headerActions');
+    const toggle = document.querySelector('.mobile-menu-toggle');
+    
+    if (menu) {
+        menu.classList.toggle('active');
+    }
+    
+    if (toggle) {
+        toggle.classList.toggle('active');
+    }
+}
+
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById('leftSidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('mobile-visible');
+    }
+}
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('headerActions');
+    const toggle = document.querySelector('.mobile-menu-toggle');
+    
+    if (menu && toggle && menu.classList.contains('active')) {
+        if (!menu.contains(e.target) && !toggle.contains(e.target)) {
+            menu.classList.remove('active');
+            toggle.classList.remove('active');
+        }
+    }
+});
+
+// Close mobile sidebar when selecting a file
+const originalSwitchFile = switchFile;
+switchFile = function(fileId) {
+    originalSwitchFile(fileId);
+    
+    // Close sidebar on mobile after selecting file
+    if (window.innerWidth <= 1024) {
+        const sidebar = document.getElementById('leftSidebar');
+        if (sidebar) {
+            sidebar.classList.remove('mobile-visible');
+        }
+    }
+};
 
 // ==================== LIVE COLLABORATION ====================
 let collabChannel = null;

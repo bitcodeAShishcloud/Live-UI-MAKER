@@ -14,51 +14,65 @@
     <header class="header">
         <button class="logo-button" type="button" onclick="openInfoModal()" aria-label="Open help and about popup">
             <i class="fas fa-bolt"></i>
-            <span>Live Compiler Pro</span>
+            <span class="logo-text">Live Compiler Pro</span>
         </button>
         
         <div class="status-indicator">
-            <div class="status-dot"></div>
-            <span>Run mode: Manual</span>
-            <div class="auto-run-indicator">
+            <button class="run-mode-toggle" onclick="toggleRunMode()" aria-label="Toggle run mode" title="Click to toggle between Manual and Auto run">
+                <div class="status-dot"></div>
+                <span id="runModeText">Run mode: Manual</span>
+            </button>
+            <div class="auto-run-indicator" id="autoRunIndicator">
                 <i class="fas fa-hand-paper"></i>
                 <span>Click Run</span>
             </div>
         </div>
         
-        <div class="header-actions">
+        <div class="header-actions" id="headerActions">
             <button class="btn btn-secondary" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle Theme">
                 <i class="fas fa-moon" id="themeIcon"></i>
+                <span class="btn-text">Theme</span>
             </button>
             <button class="btn btn-secondary" onclick="openCollabModal()" aria-label="Live Collaboration" title="Live Collaboration">
                 <i class="fas fa-users" id="collabIcon"></i>
-                <span class="ml-5">Collab</span>
+                <span class="btn-text">Collab</span>
             </button>
             <button class="btn btn-secondary" onclick="openSnippetsModal()" aria-label="Code snippets" title="Code Snippets">
                 <i class="fas fa-code"></i>
-                <span class="ml-5">Snippets</span>
+                <span class="btn-text">Snippets</span>
             </button>
             <button class="btn btn-secondary" onclick="exportAllAsZip()" aria-label="Export all as ZIP" title="Export Project">
                 <i class="fas fa-file-zipper"></i>
-                <span class="ml-5">Export</span>
+                <span class="btn-text">Export</span>
             </button>
             <button class="btn btn-secondary" onclick="clearAll()" aria-label="Clear all files">
                 <i class="fas fa-trash"></i>
-                <span class="ml-5">Clear</span>
+                <span class="btn-text">Clear</span>
             </button>
             <button class="btn btn-secondary" onclick="formatCurrentFile()" aria-label="Format current file" title="Format (Ctrl+Shift+F)">
                 <i class="fas fa-indent"></i>
-                <span class="ml-5">Format</span>
+                <span class="btn-text">Format</span>
             </button>
-            <button class="btn btn-primary" onclick="runCode()" aria-label="Run code">
+            <button class="btn btn-primary desktop-run-btn" onclick="runCode()" aria-label="Run code">
                 <i class="fas fa-play"></i>
                 <span class="ml-5">Run</span>
             </button>
         </div>
+        
+        <!-- Mobile Run Button (Always Visible) -->
+        <button class="btn btn-primary mobile-run-btn" onclick="runCode()" aria-label="Run code">
+            <i class="fas fa-play"></i>
+            <span class="ml-5">Run</span>
+        </button>
     </header>
 
     <!-- Main Container -->
     <div class="main-container">
+        <!-- Mobile Sidebar Toggle -->
+        <button class="mobile-sidebar-toggle" onclick="toggleMobileSidebar()" aria-label="Toggle sidebar">
+            <i class="fas fa-folder-open"></i>
+        </button>
+        
         <div class="left-sidebar" id="leftSidebar">
             <nav class="activity-bar" id="activityBar">
                 <button class="activity-btn active" id="activityFilesBtn" onclick="switchSidebarTab('files')" title="Files">
