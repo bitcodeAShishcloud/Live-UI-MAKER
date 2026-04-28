@@ -123,7 +123,8 @@ const state = {
     sidebarWidth: 250,
     previewVisible: true,
     previewWidthPercent: 50,
-    activeSidebarTab: 'files'
+    activeSidebarTab: 'files',
+    theme: 'dark'
 };
 
 // Language configurations
@@ -223,6 +224,24 @@ function setupModalDismiss() {
             }
         });
     }
+
+    const snippetsModal = document.getElementById('snippetsModal');
+    if (snippetsModal) {
+        snippetsModal.addEventListener('click', (event) => {
+            if (event.target === snippetsModal) {
+                closeSnippetsModal();
+            }
+        });
+    }
+
+    const collabModal = document.getElementById('collabModal');
+    if (collabModal) {
+        collabModal.addEventListener('click', (event) => {
+            if (event.target === collabModal) {
+                closeCollabModal();
+            }
+        });
+    }
 }
 
 function persistStateNow() {
@@ -241,7 +260,8 @@ function persistStateNow() {
             sidebarVisible: state.sidebarVisible,
             previewVisible: state.previewVisible,
             previewWidthPercent: state.previewWidthPercent,
-            activeSidebarTab: state.activeSidebarTab
+            activeSidebarTab: state.activeSidebarTab,
+            theme: state.theme
         }
     };
 
@@ -294,6 +314,9 @@ function restoreStateFromStorage() {
         if (savedState.activeSidebarTab === 'files' || savedState.activeSidebarTab === 'import') {
             state.activeSidebarTab = savedState.activeSidebarTab;
         }
+        if (savedState.theme === 'light' || savedState.theme === 'dark') {
+            state.theme = savedState.theme;
+        }
     } catch (err) {
         localStorage.removeItem(APP_STATE_KEY);
     }
@@ -309,6 +332,7 @@ function resetWorkspaceToDefaults() {
 // ==================== INITIALIZATION ====================
 function init() {
     restoreStateFromStorage();
+    applyTheme(state.theme);
     applySidebarWidth(state.sidebarWidth);
     switchSidebarTab(state.activeSidebarTab, true);
     renderFileTabs();
@@ -1785,6 +1809,8 @@ function setupKeyboardShortcuts() {
         if (e.key === 'Escape') {
             closeAddFileModal();
             closeInfoModal();
+            closeSnippetsModal();
+            closeCollabModal();
         }
     });
 }
@@ -1795,5 +1821,788 @@ function tryHistoryAction(target, action) {
     return action === 'undo' ? undoInEditor(fileId) : redoInEditor(fileId);
 }
 
+// ==================== THEME SWITCHER ====================
+function toggleTheme() {
+    state.theme = state.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(state.theme);
+    schedulePersistState();
+    showToast(`${state.theme === 'dark' ? 'Dark' : 'Light'} theme activated`, 'success');
+}
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    const icon = document.getElementById('themeIcon');
+    if (icon) {
+        icon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+    }
+}
+
+// ==================== CODE SNIPPETS ====================
+const codeSnippets = {
+    html: [
+        {
+            name: 'HTML5 Boilerplate',
+            description: 'Complete HTML5 starter template',
+            code: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>Hello World</h1>
+</body>
+</html>`
+        },
+        {
+            name: 'Responsive Card',
+            description: 'Modern card component',
+            code: `<div class="card">
+    <img src="https://via.placeholder.com/400x200" alt="Card image">
+    <div class="card-body">
+        <h3>Card Title</h3>
+        <p>Card description goes here.</p>
+        <button>Learn More</button>
+    </div>
+</div>`
+        },
+        {
+            name: 'Navigation Bar',
+            description: 'Responsive navbar',
+            code: `<nav class="navbar">
+    <div class="logo">Brand</div>
+    <ul class="nav-links">
+        <li><a href="#home">Home</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#contact">Contact</a></li>
+    </ul>
+</nav>`
+        },
+        {
+            name: 'Contact Form',
+            description: 'Simple contact form',
+            code: `<form class="contact-form">
+    <input type="text" placeholder="Name" required>
+    <input type="email" placeholder="Email" required>
+    <textarea placeholder="Message" rows="5" required></textarea>
+    <button type="submit">Send</button>
+</form>`
+        }
+    ],
+    css: [
+        {
+            name: 'Flexbox Center',
+            description: 'Center content with flexbox',
+            code: `.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}`
+        },
+        {
+            name: 'Grid Layout',
+            description: 'Responsive grid system',
+            code: `.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    padding: 20px;
+}`
+        },
+        {
+            name: 'Glassmorphism',
+            description: 'Modern glass effect',
+            code: `.glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}`
+        },
+        {
+            name: 'Button Hover',
+            description: 'Smooth button animation',
+            code: `.button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}`
+        },
+        {
+            name: 'Gradient Text',
+            description: 'Colorful gradient text',
+            code: `.gradient-text {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 3rem;
+    font-weight: bold;
+}`
+        }
+    ],
+    js: [
+        {
+            name: 'Fetch API',
+            description: 'Get data from API',
+            code: `async function fetchData() {
+    try {
+        const response = await fetch('https://api.example.com/data');
+        const data = await response.json();
+        console.log(data);
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+fetchData();`
+        },
+        {
+            name: 'DOM Manipulation',
+            description: 'Create and append elements',
+            code: `const container = document.getElementById('container');
+
+const newElement = document.createElement('div');
+newElement.className = 'item';
+newElement.textContent = 'New Item';
+newElement.addEventListener('click', () => {
+    alert('Clicked!');
+});
+
+container.appendChild(newElement);`
+        },
+        {
+            name: 'Local Storage',
+            description: 'Save and load data',
+            code: `// Save data
+const data = { name: 'John', age: 30 };
+localStorage.setItem('userData', JSON.stringify(data));
+
+// Load data
+const savedData = JSON.parse(localStorage.getItem('userData'));
+console.log(savedData);`
+        },
+        {
+            name: 'Debounce Function',
+            description: 'Limit function calls',
+            code: `function debounce(func, delay) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), delay);
+    };
+}
+
+const handleSearch = debounce((query) => {
+    console.log('Searching for:', query);
+}, 500);`
+        },
+        {
+            name: 'Array Methods',
+            description: 'Common array operations',
+            code: `const numbers = [1, 2, 3, 4, 5];
+
+// Map
+const doubled = numbers.map(n => n * 2);
+
+// Filter
+const evens = numbers.filter(n => n % 2 === 0);
+
+// Reduce
+const sum = numbers.reduce((acc, n) => acc + n, 0);
+
+console.log({ doubled, evens, sum });`
+        }
+    ],
+    python: [
+        {
+            name: 'List Comprehension',
+            description: 'Create lists efficiently',
+            code: `# List comprehension
+squares = [x**2 for x in range(10)]
+evens = [x for x in range(20) if x % 2 == 0]
+
+print(squares)
+print(evens)`
+        },
+        {
+            name: 'Dictionary Operations',
+            description: 'Work with dictionaries',
+            code: `# Dictionary operations
+person = {
+    'name': 'John',
+    'age': 30,
+    'city': 'New York'
+}
+
+# Get value with default
+age = person.get('age', 0)
+
+# Iterate
+for key, value in person.items():
+    print(f"{key}: {value}")`
+        },
+        {
+            name: 'Function Decorator',
+            description: 'Simple decorator example',
+            code: `def timer_decorator(func):
+    import time
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        end = time.time()
+        print(f"Execution time: {end - start:.4f}s")
+        return result
+    return wrapper
+
+@timer_decorator
+def slow_function():
+    import time
+    time.sleep(1)
+    return "Done"
+
+slow_function()`
+        },
+        {
+            name: 'Class Example',
+            description: 'Basic class structure',
+            code: `class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+    
+    def greet(self):
+        return f"Hello, I'm {self.name} and I'm {self.age} years old"
+    
+    def birthday(self):
+        self.age += 1
+        return f"Happy birthday! Now {self.age} years old"
+
+person = Person("Alice", 25)
+print(person.greet())
+print(person.birthday())`
+        }
+    ]
+};
+
+function openSnippetsModal() {
+    const modal = document.getElementById('snippetsModal');
+    const grid = document.getElementById('snippetsGrid');
+    
+    grid.innerHTML = '';
+    
+    Object.entries(codeSnippets).forEach(([type, snippets]) => {
+        snippets.forEach(snippet => {
+            const card = document.createElement('div');
+            card.className = 'snippet-card';
+            card.onclick = () => insertSnippet(type, snippet.code);
+            
+            card.innerHTML = `
+                <h4>
+                    <span class="snippet-badge ${type}">${type.toUpperCase()}</span>
+                    ${snippet.name}
+                </h4>
+                <p>${snippet.description}</p>
+            `;
+            
+            grid.appendChild(card);
+        });
+    });
+    
+    modal.classList.add('active');
+}
+
+function closeSnippetsModal() {
+    const modal = document.getElementById('snippetsModal');
+    modal.classList.remove('active');
+}
+
+function insertSnippet(type, code) {
+    const file = state.files.find(f => f.type === type);
+    
+    if (file) {
+        file.content = code;
+        state.activeFileId = file.id;
+    } else {
+        const newFile = {
+            id: Date.now(),
+            name: `snippet${languageConfig[type].extension}`,
+            type: type,
+            content: code
+        };
+        state.files.push(newFile);
+        state.activeFileId = newFile.id;
+    }
+    
+    renderFileTabs();
+    renderEditorTabs();
+    renderEditors();
+    updatePreview();
+    closeSnippetsModal();
+    showToast('Snippet inserted!', 'success');
+    schedulePersistState();
+}
+
+// ==================== EXPORT AS ZIP ====================
+async function exportAllAsZip() {
+    if (typeof JSZip === 'undefined') {
+        showToast('JSZip library not loaded', 'error');
+        return;
+    }
+    
+    const zip = new JSZip();
+    
+    state.files.forEach(file => {
+        zip.file(file.name, file.content);
+    });
+    
+    try {
+        const blob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'project.zip';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Project exported as ZIP!', 'success');
+    } catch (error) {
+        showToast('Failed to create ZIP', 'error');
+        console.error(error);
+    }
+}
+
 // ==================== START APPLICATION ====================
 init();
+
+// ==================== LIVE COLLABORATION ====================
+let collabChannel = null;
+let broadcastChannel = null;
+let isBroadcastSyncEnabled = false;
+let peerConnection = null;
+let dataChannel = null;
+let roomCode = null;
+let isCollabConnected = false;
+
+function openCollabModal() {
+    const modal = document.getElementById('collabModal');
+    modal.classList.add('active');
+}
+
+function closeCollabModal() {
+    const modal = document.getElementById('collabModal');
+    modal.classList.remove('active');
+}
+
+function switchCollabTab(tab) {
+    document.querySelectorAll('.collab-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.collab-panel').forEach(p => p.classList.remove('active'));
+    
+    document.querySelector(`.collab-tab[onclick="switchCollabTab('${tab}')"]`).classList.add('active');
+    document.getElementById(`${tab}Panel`).classList.add('active');
+}
+
+// ==================== BROADCAST CHANNEL (Same Browser Tabs) ====================
+function toggleBroadcastSync() {
+    if (isBroadcastSyncEnabled) {
+        disableBroadcastSync();
+    } else {
+        enableBroadcastSync();
+    }
+}
+
+function enableBroadcastSync() {
+    if (!window.BroadcastChannel) {
+        showCollabStatus('broadcast', 'BroadcastChannel not supported in this browser', 'error');
+        return;
+    }
+    
+    broadcastChannel = new BroadcastChannel('live_compiler_collab');
+    
+    broadcastChannel.onmessage = (event) => {
+        const { type, data } = event.data;
+        
+        if (type === 'sync-state') {
+            // Don't sync if we're the sender
+            if (data.senderId === getTabId()) return;
+            
+            state.files = data.files;
+            state.activeFileId = data.activeFileId;
+            renderFileTabs();
+            renderEditorTabs();
+            renderEditors();
+            updatePreview();
+            showCollabStatus('broadcast', `Synced from another tab`, 'success');
+        }
+        
+        if (type === 'code-change') {
+            if (data.senderId === getTabId()) return;
+            
+            const file = state.files.find(f => f.id === data.fileId);
+            if (file) {
+                file.content = data.content;
+                const textarea = document.getElementById(`code-${data.fileId}`);
+                if (textarea) {
+                    textarea.value = data.content;
+                    updateLineNumbers(data.fileId);
+                }
+                updatePreview();
+            }
+        }
+    };
+    
+    isBroadcastSyncEnabled = true;
+    document.getElementById('broadcastBtnText').textContent = 'Disable Tab Sync';
+    document.getElementById('collabIcon').classList.add('connected');
+    showCollabStatus('broadcast', 'Tab sync enabled! Open this page in another tab to collaborate.', 'success');
+    
+    // Broadcast current state
+    broadcastSyncState();
+}
+
+function disableBroadcastSync() {
+    if (broadcastChannel) {
+        broadcastChannel.close();
+        broadcastChannel = null;
+    }
+    
+    isBroadcastSyncEnabled = false;
+    document.getElementById('broadcastBtnText').textContent = 'Enable Tab Sync';
+    document.getElementById('collabIcon').classList.remove('connected');
+    showCollabStatus('broadcast', 'Tab sync disabled', 'info');
+}
+
+function broadcastSyncState() {
+    if (!broadcastChannel || !isBroadcastSyncEnabled) return;
+    
+    broadcastChannel.postMessage({
+        type: 'sync-state',
+        data: {
+            senderId: getTabId(),
+            files: state.files,
+            activeFileId: state.activeFileId
+        }
+    });
+}
+
+function broadcastCodeChange(fileId, content) {
+    if (!broadcastChannel || !isBroadcastSyncEnabled) return;
+    
+    broadcastChannel.postMessage({
+        type: 'code-change',
+        data: {
+            senderId: getTabId(),
+            fileId: fileId,
+            content: content
+        }
+    });
+}
+
+function getTabId() {
+    let tabId = sessionStorage.getItem('tabId');
+    if (!tabId) {
+        tabId = 'tab_' + Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem('tabId', tabId);
+    }
+    return tabId;
+}
+
+// ==================== WEBRTC P2P COLLABORATION ====================
+function generateRoomCode() {
+    return Math.random().toString(36).substr(2, 6).toUpperCase() + 
+           Math.random().toString(36).substr(2, 6).toUpperCase();
+}
+
+async function createCollabRoom() {
+    roomCode = generateRoomCode();
+    
+    document.getElementById('roomCodeDisplay').style.display = 'block';
+    document.getElementById('roomCode').textContent = roomCode;
+    
+    // Create peer connection
+    const config = {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+    };
+    
+    peerConnection = new RTCPeerConnection(config);
+    
+    // Create data channel
+    dataChannel = peerConnection.createDataChannel('collab');
+    setupDataChannel(dataChannel);
+    
+    // Create offer
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    
+    // Wait for ICE gathering
+    await new Promise(resolve => {
+        if (peerConnection.iceGatheringState === 'complete') {
+            resolve();
+        } else {
+            peerConnection.addEventListener('icegatheringstatechange', () => {
+                if (peerConnection.iceGatheringState === 'complete') {
+                    resolve();
+                }
+            });
+        }
+    });
+    
+    // Store offer in localStorage for signaling
+    const signalData = {
+        type: 'offer',
+        sdp: peerConnection.localDescription,
+        timestamp: Date.now()
+    };
+    localStorage.setItem(`collab_room_${roomCode}`, JSON.stringify(signalData));
+    
+    // Start polling for answer
+    pollForAnswer();
+    
+    showCollabStatus('webrtc', `Room created! Share code: ${roomCode}`, 'success');
+}
+
+async function joinCollabRoom() {
+    const code = document.getElementById('joinRoomCode').value.trim().toUpperCase();
+    
+    if (!code || code.length !== 12) {
+        showCollabStatus('webrtc', 'Please enter a valid 12-character room code', 'error');
+        return;
+    }
+    
+    const signalDataStr = localStorage.getItem(`collab_room_${code}`);
+    if (!signalDataStr) {
+        showCollabStatus('webrtc', 'Room not found. Check the code and try again.', 'error');
+        return;
+    }
+    
+    const signalData = JSON.parse(signalDataStr);
+    
+    // Check if room is expired (5 minutes)
+    if (Date.now() - signalData.timestamp > 5 * 60 * 1000) {
+        localStorage.removeItem(`collab_room_${code}`);
+        showCollabStatus('webrtc', 'Room expired. Please create a new one.', 'error');
+        return;
+    }
+    
+    // Create peer connection
+    const config = {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+    };
+    
+    peerConnection = new RTCPeerConnection(config);
+    
+    // Handle incoming data channel
+    peerConnection.ondatachannel = (event) => {
+        dataChannel = event.channel;
+        setupDataChannel(dataChannel);
+    };
+    
+    // Set remote description (offer)
+    await peerConnection.setRemoteDescription(signalData.sdp);
+    
+    // Create answer
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    
+    // Wait for ICE gathering
+    await new Promise(resolve => {
+        if (peerConnection.iceGatheringState === 'complete') {
+            resolve();
+        } else {
+            peerConnection.addEventListener('icegatheringstatechange', () => {
+                if (peerConnection.iceGatheringState === 'complete') {
+                    resolve();
+                }
+            });
+        }
+    });
+    
+    // Store answer
+    const answerData = {
+        type: 'answer',
+        sdp: peerConnection.localDescription,
+        timestamp: Date.now()
+    };
+    localStorage.setItem(`collab_answer_${code}`, JSON.stringify(answerData));
+    
+    showCollabStatus('webrtc', 'Connecting to room...', 'info');
+}
+
+async function pollForAnswer() {
+    const maxAttempts = 60; // 5 minutes
+    let attempts = 0;
+    
+    const poll = async () => {
+        attempts++;
+        
+        const answerDataStr = localStorage.getItem(`collab_answer_${roomCode}`);
+        
+        if (answerDataStr) {
+            const answerData = JSON.parse(answerDataStr);
+            await peerConnection.setRemoteDescription(answerData.sdp);
+            localStorage.removeItem(`collab_answer_${roomCode}`);
+            showCollabStatus('webrtc', 'Connected! Peer joined the room.', 'success');
+            return;
+        }
+        
+        if (attempts < maxAttempts) {
+            setTimeout(poll, 5000);
+        } else {
+            showCollabStatus('webrtc', 'Connection timeout. Room expired.', 'error');
+            localStorage.removeItem(`collab_room_${roomCode}`);
+        }
+    };
+    
+    poll();
+}
+
+function setupDataChannel(channel) {
+    channel.onopen = () => {
+        isCollabConnected = true;
+        document.getElementById('collabIcon').classList.add('connected');
+        showCollabStatus('webrtc', 'Connected! You can now collaborate in real-time.', 'success');
+        
+        // Send current state
+        sendCollabMessage({
+            type: 'sync-state',
+            data: {
+                files: state.files,
+                activeFileId: state.activeFileId
+            }
+        });
+    };
+    
+    channel.onclose = () => {
+        isCollabConnected = false;
+        document.getElementById('collabIcon').classList.remove('connected');
+        showCollabStatus('webrtc', 'Disconnected from peer.', 'info');
+    };
+    
+    channel.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        handleCollabMessage(message);
+    };
+    
+    channel.onerror = (error) => {
+        console.error('Data channel error:', error);
+        showCollabStatus('webrtc', 'Connection error occurred.', 'error');
+    };
+}
+
+function sendCollabMessage(message) {
+    if (dataChannel && dataChannel.readyState === 'open') {
+        dataChannel.send(JSON.stringify(message));
+    }
+}
+
+function handleCollabMessage(message) {
+    const { type, data } = message;
+    
+    if (type === 'sync-state') {
+        state.files = data.files;
+        state.activeFileId = data.activeFileId;
+        renderFileTabs();
+        renderEditorTabs();
+        renderEditors();
+        updatePreview();
+    }
+    
+    if (type === 'code-change') {
+        const file = state.files.find(f => f.id === data.fileId);
+        if (file) {
+            file.content = data.content;
+            const textarea = document.getElementById(`code-${data.fileId}`);
+            if (textarea) {
+                textarea.value = data.content;
+                updateLineNumbers(data.fileId);
+            }
+            updatePreview();
+        }
+    }
+    
+    if (type === 'cursor-change') {
+        // Show remote cursor (visual indicator)
+        showRemoteCursor(data);
+    }
+}
+
+function sendCodeChange(fileId, content) {
+    // Broadcast to same-browser tabs
+    broadcastCodeChange(fileId, content);
+    
+    // Send via WebRTC if connected
+    sendCollabMessage({
+        type: 'code-change',
+        data: {
+            fileId: fileId,
+            content: content
+        }
+    });
+}
+
+function showRemoteCursor(data) {
+    // Visual indicator for remote cursor position
+    // This could be enhanced with actual cursor visualization
+    console.log('Remote cursor:', data);
+}
+
+function copyRoomCode() {
+    const code = document.getElementById('roomCode').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        showToast('Room code copied!', 'success');
+    });
+}
+
+function showCollabStatus(panel, message, type) {
+    const status = document.getElementById(`${panel}Status`);
+    status.textContent = message;
+    status.className = `collab-status ${type}`;
+}
+
+// Modify onCodeChange to broadcast changes
+const originalOnCodeChange = onCodeChange;
+onCodeChange = function(fileId) {
+    originalOnCodeChange(fileId);
+    
+    const file = state.files.find(f => f.id === fileId);
+    if (file) {
+        sendCodeChange(fileId, file.content);
+    }
+    
+    // Broadcast state to other tabs
+    broadcastSyncState();
+};
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    if (roomCode) {
+        localStorage.removeItem(`collab_room_${roomCode}`);
+        localStorage.removeItem(`collab_answer_${roomCode}`);
+    }
+    if (broadcastChannel) {
+        broadcastChannel.close();
+    }
+    if (peerConnection) {
+        peerConnection.close();
+    }
+});

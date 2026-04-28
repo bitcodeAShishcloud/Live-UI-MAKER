@@ -26,6 +26,21 @@
         </div>
         
         <div class="header-actions">
+            <button class="btn btn-secondary" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle Theme">
+                <i class="fas fa-moon" id="themeIcon"></i>
+            </button>
+            <button class="btn btn-secondary" onclick="openCollabModal()" aria-label="Live Collaboration" title="Live Collaboration">
+                <i class="fas fa-users" id="collabIcon"></i>
+                <span class="ml-5">Collab</span>
+            </button>
+            <button class="btn btn-secondary" onclick="openSnippetsModal()" aria-label="Code snippets" title="Code Snippets">
+                <i class="fas fa-code"></i>
+                <span class="ml-5">Snippets</span>
+            </button>
+            <button class="btn btn-secondary" onclick="exportAllAsZip()" aria-label="Export all as ZIP" title="Export Project">
+                <i class="fas fa-file-zipper"></i>
+                <span class="ml-5">Export</span>
+            </button>
             <button class="btn btn-secondary" onclick="clearAll()" aria-label="Clear all files">
                 <i class="fas fa-trash"></i>
                 <span class="ml-5">Clear</span>
@@ -264,6 +279,78 @@
         </div>
     </div>
 
+    <!-- Snippets Modal -->
+    <div class="modal-overlay" id="snippetsModal">
+        <div class="modal snippets-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-code"></i> Code Snippets</h3>
+                <button class="icon-btn" type="button" aria-label="Close snippets modal" onclick="closeSnippetsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="snippets-grid" id="snippetsGrid">
+                <!-- Snippets will be generated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Collaboration Modal -->
+    <div class="modal-overlay" id="collabModal">
+        <div class="modal collab-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-users"></i> Live Collaboration</h3>
+                <button class="icon-btn" type="button" aria-label="Close collaboration modal" onclick="closeCollabModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="collab-content">
+                <div class="collab-tabs">
+                    <button class="collab-tab active" onclick="switchCollabTab('webrtc')">WebRTC (P2P)</button>
+                    <button class="collab-tab" onclick="switchCollabTab('broadcast')">Same Browser</button>
+                </div>
+                
+                <div class="collab-panel active" id="webrtcPanel">
+                    <p class="collab-info">Share code in real-time with anyone, anywhere. No server needed!</p>
+                    
+                    <div class="collab-section">
+                        <h4><i class="fas fa-plus-circle"></i> Create Room</h4>
+                        <button class="btn btn-primary" onclick="createCollabRoom()">
+                            <i class="fas fa-door-open"></i> Create New Room
+                        </button>
+                        <div id="roomCodeDisplay" class="room-code" style="display:none;">
+                            <label>Share this code:</label>
+                            <div class="room-code-box">
+                                <span id="roomCode"></span>
+                                <button class="btn-icon" onclick="copyRoomCode()" title="Copy">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="collab-section">
+                        <h4><i class="fas fa-sign-in-alt"></i> Join Room</h4>
+                        <input type="text" id="joinRoomCode" placeholder="Enter room code" maxlength="12">
+                        <button class="btn btn-secondary" onclick="joinCollabRoom()">
+                            <i class="fas fa-link"></i> Join Room
+                        </button>
+                    </div>
+                    
+                    <div id="collabStatus" class="collab-status"></div>
+                </div>
+                
+                <div class="collab-panel" id="broadcastPanel">
+                    <p class="collab-info">Sync across multiple tabs in the same browser. Great for testing!</p>
+                    <button class="btn btn-primary" onclick="toggleBroadcastSync()">
+                        <i class="fas fa-sync"></i> <span id="broadcastBtnText">Enable Tab Sync</span>
+                    </button>
+                    <div id="broadcastStatus" class="collab-status"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
