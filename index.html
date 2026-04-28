@@ -330,13 +330,23 @@
                     
                     <div class="collab-section">
                         <h4><i class="fas fa-sign-in-alt"></i> Join Room</h4>
-                        <input type="text" id="joinRoomCode" placeholder="Enter room code" maxlength="12">
+                        <input type="text" id="joinRoomCode" placeholder="Enter room code (12 characters)" maxlength="12">
                         <button class="btn btn-secondary" onclick="joinCollabRoom()">
                             <i class="fas fa-link"></i> Join Room
                         </button>
                     </div>
                     
                     <div id="collabStatus" class="collab-status"></div>
+                    
+                    <div class="collab-section" style="margin-top: 12px;">
+                        <h4><i class="fas fa-info-circle"></i> How to Use</h4>
+                        <ol style="margin: 8px 0 0 20px; color: var(--text-secondary); font-size: 0.85rem; line-height: 1.6;">
+                            <li>Person 1: Click "Create New Room"</li>
+                            <li>Copy and share the 12-character code</li>
+                            <li>Person 2: Enter the code and click "Join Room"</li>
+                            <li>Start coding together!</li>
+                        </ol>
+                    </div>
                 </div>
                 
                 <div class="collab-panel" id="broadcastPanel">

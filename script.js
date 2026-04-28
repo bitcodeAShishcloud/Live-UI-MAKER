@@ -2321,64 +2321,61 @@ function getTabId() {
     return tabId;
 }
 
-// ==================== WEBRTC P2P COLLABORATION ====================
+// ==================== WEBRTC P2P COLLABORATION (Using PeerJS) ====================
+let peer = null;
+let conn = null;
+
 function generateRoomCode() {
     return Math.random().toString(36).substr(2, 6).toUpperCase() + 
            Math.random().toString(36).substr(2, 6).toUpperCase();
 }
 
-async function createCollabRoom() {
+function createCollabRoom() {
+    // Check if PeerJS is loaded
+    if (typeof Peer === 'undefined') {
+        showCollabStatus('webrtc', 'Loading PeerJS library... Please try again in a moment.', 'info');
+        // Try to load PeerJS dynamically
+        loadPeerJS().then(() => {
+            showCollabStatus('webrtc', 'PeerJS loaded! Click Create Room again.', 'success');
+        });
+        return;
+    }
+    
     roomCode = generateRoomCode();
     
-    document.getElementById('roomCodeDisplay').style.display = 'block';
-    document.getElementById('roomCode').textContent = roomCode;
-    
-    // Create peer connection
-    const config = {
-        iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-    };
-    
-    peerConnection = new RTCPeerConnection(config);
-    
-    // Create data channel
-    dataChannel = peerConnection.createDataChannel('collab');
-    setupDataChannel(dataChannel);
-    
-    // Create offer
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer);
-    
-    // Wait for ICE gathering
-    await new Promise(resolve => {
-        if (peerConnection.iceGatheringState === 'complete') {
-            resolve();
-        } else {
-            peerConnection.addEventListener('icegatheringstatechange', () => {
-                if (peerConnection.iceGatheringState === 'complete') {
-                    resolve();
-                }
-            });
-        }
+    // Create PeerJS peer with room code as ID
+    peer = new Peer(roomCode, {
+        debug: 2
     });
     
-    // Store offer in localStorage for signaling
-    const signalData = {
-        type: 'offer',
-        sdp: peerConnection.localDescription,
-        timestamp: Date.now()
-    };
-    localStorage.setItem(`collab_room_${roomCode}`, JSON.stringify(signalData));
+    peer.on('open', (id) => {
+        document.getElementById('roomCodeDisplay').style.display = 'block';
+        document.getElementById('roomCode').textContent = id;
+        showCollabStatus('webrtc', `Room created! Share code: ${id}`, 'success');
+    });
     
-    // Start polling for answer
-    pollForAnswer();
+    peer.on('connection', (connection) => {
+        conn = connection;
+        setupPeerConnection();
+        showCollabStatus('webrtc', 'Peer connected! Start collaborating.', 'success');
+    });
     
-    showCollabStatus('webrtc', `Room created! Share code: ${roomCode}`, 'success');
+    peer.on('error', (err) => {
+        console.error('PeerJS error:', err);
+        showCollabStatus('webrtc', `Error: ${err.type} - ${err.message || 'Unknown error'}`, 'error');
+    });
 }
 
-async function joinCollabRoom() {
+function joinCollabRoom() {
+    // Check if PeerJS is loaded
+    if (typeof Peer === 'undefined') {
+        showCollabStatus('webrtc', 'Loading PeerJS library... Please try again in a moment.', 'info');
+        loadPeerJS().then(() => {
+            showCollabStatus('webrtc', 'PeerJS loaded! Try joining again.', 'success');
+        });
+        return;
+    }
+    
     const code = document.getElementById('joinRoomCode').value.trim().toUpperCase();
     
     if (!code || code.length !== 12) {
@@ -2386,101 +2383,32 @@ async function joinCollabRoom() {
         return;
     }
     
-    const signalDataStr = localStorage.getItem(`collab_room_${code}`);
-    if (!signalDataStr) {
-        showCollabStatus('webrtc', 'Room not found. Check the code and try again.', 'error');
-        return;
-    }
+    // Create peer and connect to room
+    peer = new Peer();
     
-    const signalData = JSON.parse(signalDataStr);
-    
-    // Check if room is expired (5 minutes)
-    if (Date.now() - signalData.timestamp > 5 * 60 * 1000) {
-        localStorage.removeItem(`collab_room_${code}`);
-        showCollabStatus('webrtc', 'Room expired. Please create a new one.', 'error');
-        return;
-    }
-    
-    // Create peer connection
-    const config = {
-        iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-    };
-    
-    peerConnection = new RTCPeerConnection(config);
-    
-    // Handle incoming data channel
-    peerConnection.ondatachannel = (event) => {
-        dataChannel = event.channel;
-        setupDataChannel(dataChannel);
-    };
-    
-    // Set remote description (offer)
-    await peerConnection.setRemoteDescription(signalData.sdp);
-    
-    // Create answer
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
-    
-    // Wait for ICE gathering
-    await new Promise(resolve => {
-        if (peerConnection.iceGatheringState === 'complete') {
-            resolve();
-        } else {
-            peerConnection.addEventListener('icegatheringstatechange', () => {
-                if (peerConnection.iceGatheringState === 'complete') {
-                    resolve();
-                }
-            });
-        }
+    peer.on('open', () => {
+        conn = peer.connect(code, { reliable: true });
+        setupPeerConnection();
+        showCollabStatus('webrtc', 'Connecting to room...', 'info');
     });
     
-    // Store answer
-    const answerData = {
-        type: 'answer',
-        sdp: peerConnection.localDescription,
-        timestamp: Date.now()
-    };
-    localStorage.setItem(`collab_answer_${code}`, JSON.stringify(answerData));
-    
-    showCollabStatus('webrtc', 'Connecting to room...', 'info');
-}
-
-async function pollForAnswer() {
-    const maxAttempts = 60; // 5 minutes
-    let attempts = 0;
-    
-    const poll = async () => {
-        attempts++;
-        
-        const answerDataStr = localStorage.getItem(`collab_answer_${roomCode}`);
-        
-        if (answerDataStr) {
-            const answerData = JSON.parse(answerDataStr);
-            await peerConnection.setRemoteDescription(answerData.sdp);
-            localStorage.removeItem(`collab_answer_${roomCode}`);
-            showCollabStatus('webrtc', 'Connected! Peer joined the room.', 'success');
-            return;
-        }
-        
-        if (attempts < maxAttempts) {
-            setTimeout(poll, 5000);
+    peer.on('error', (err) => {
+        console.error('PeerJS error:', err);
+        if (err.type === 'peer-unavailable') {
+            showCollabStatus('webrtc', 'Room not found. Check the code and make sure the room is still open.', 'error');
         } else {
-            showCollabStatus('webrtc', 'Connection timeout. Room expired.', 'error');
-            localStorage.removeItem(`collab_room_${roomCode}`);
+            showCollabStatus('webrtc', `Error: ${err.type} - ${err.message || 'Unknown error'}`, 'error');
         }
-    };
-    
-    poll();
+    });
 }
 
-function setupDataChannel(channel) {
-    channel.onopen = () => {
+function setupPeerConnection() {
+    if (!conn) return;
+    
+    conn.on('open', () => {
         isCollabConnected = true;
         document.getElementById('collabIcon').classList.add('connected');
-        showCollabStatus('webrtc', 'Connected! You can now collaborate in real-time.', 'success');
+        showCollabStatus('webrtc', '✅ Connected! You can now collaborate in real-time.', 'success');
         
         // Send current state
         sendCollabMessage({
@@ -2490,44 +2418,70 @@ function setupDataChannel(channel) {
                 activeFileId: state.activeFileId
             }
         });
-    };
+    });
     
-    channel.onclose = () => {
+    conn.on('data', (data) => {
+        handleCollabMessage(data);
+    });
+    
+    conn.on('close', () => {
         isCollabConnected = false;
         document.getElementById('collabIcon').classList.remove('connected');
         showCollabStatus('webrtc', 'Disconnected from peer.', 'info');
-    };
+    });
     
-    channel.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        handleCollabMessage(message);
-    };
-    
-    channel.onerror = (error) => {
-        console.error('Data channel error:', error);
+    conn.on('error', (err) => {
+        console.error('Connection error:', err);
         showCollabStatus('webrtc', 'Connection error occurred.', 'error');
-    };
+    });
+}
+
+function loadPeerJS() {
+    return new Promise((resolve, reject) => {
+        if (typeof Peer !== 'undefined') {
+            resolve();
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js';
+        script.onload = () => {
+            console.log('PeerJS loaded successfully');
+            resolve();
+        };
+        script.onerror = () => {
+            reject(new Error('Failed to load PeerJS'));
+        };
+        document.head.appendChild(script);
+    });
 }
 
 function sendCollabMessage(message) {
-    if (dataChannel && dataChannel.readyState === 'open') {
-        dataChannel.send(JSON.stringify(message));
+    if (conn && conn.open) {
+        try {
+            conn.send(message);
+        } catch (err) {
+            console.error('Failed to send message:', err);
+        }
     }
 }
 
 function handleCollabMessage(message) {
+    if (!message || !message.type) return;
+    
     const { type, data } = message;
     
-    if (type === 'sync-state') {
+    if (type === 'sync-state' && data) {
         state.files = data.files;
         state.activeFileId = data.activeFileId;
         renderFileTabs();
         renderEditorTabs();
         renderEditors();
         updatePreview();
+        showToast('Synced from peer!', 'success');
     }
     
-    if (type === 'code-change') {
+    if (type === 'code-change' && data) {
         const file = state.files.find(f => f.id === data.fileId);
         if (file) {
             file.content = data.content;
@@ -2538,11 +2492,6 @@ function handleCollabMessage(message) {
             }
             updatePreview();
         }
-    }
-    
-    if (type === 'cursor-change') {
-        // Show remote cursor (visual indicator)
-        showRemoteCursor(data);
     }
 }
 
@@ -2560,29 +2509,32 @@ function sendCodeChange(fileId, content) {
     });
 }
 
-function showRemoteCursor(data) {
-    // Visual indicator for remote cursor position
-    // This could be enhanced with actual cursor visualization
-    console.log('Remote cursor:', data);
-}
-
 function copyRoomCode() {
     const code = document.getElementById('roomCode').textContent;
+    if (!code) {
+        showToast('No room code to copy', 'error');
+        return;
+    }
     navigator.clipboard.writeText(code).then(() => {
         showToast('Room code copied!', 'success');
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        showToast('Failed to copy code', 'error');
     });
 }
 
 function showCollabStatus(panel, message, type) {
     const status = document.getElementById(`${panel}Status`);
-    status.textContent = message;
-    status.className = `collab-status ${type}`;
+    if (status) {
+        status.textContent = message;
+        status.className = `collab-status ${type}`;
+    }
 }
 
-// Modify onCodeChange to broadcast changes
-const originalOnCodeChange = onCodeChange;
+// Override onCodeChange to broadcast changes
+const _originalOnCodeChange = onCodeChange;
 onCodeChange = function(fileId) {
-    originalOnCodeChange(fileId);
+    _originalOnCodeChange(fileId);
     
     const file = state.files.find(f => f.id === fileId);
     if (file) {
@@ -2595,14 +2547,10 @@ onCodeChange = function(fileId) {
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {
-    if (roomCode) {
-        localStorage.removeItem(`collab_room_${roomCode}`);
-        localStorage.removeItem(`collab_answer_${roomCode}`);
+    if (peer) {
+        peer.destroy();
     }
     if (broadcastChannel) {
         broadcastChannel.close();
-    }
-    if (peerConnection) {
-        peerConnection.close();
     }
 });
