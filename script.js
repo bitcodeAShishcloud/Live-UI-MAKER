@@ -1115,29 +1115,29 @@ function updatePreview() {
                 ${html}
                 <script>
                     // Intercept console methods
-                    const originalLog = console.log;
-                    const originalWarn = console.warn;
-                    const originalError = console.error;
-                    const originalInfo = console.info;
+                    const _originalLog = console.log;
+                    const _originalWarn = console.warn;
+                    const _originalError = console.error;
+                    const _originalInfo = console.info;
                     
                     console.log = function(...args) {
                         window.parent.postMessage({type: 'console', level: 'log', args: args}, '*');
-                        originalLog.apply(console, args);
+                        _originalLog.apply(console, args);
                     };
                     
                     console.warn = function(...args) {
                         window.parent.postMessage({type: 'console', level: 'warn', args: args}, '*');
-                        originalWarn.apply(console, args);
+                        _originalWarn.apply(console, args);
                     };
                     
                     console.error = function(...args) {
                         window.parent.postMessage({type: 'console', level: 'error', args: args}, '*');
-                        originalError.apply(console, args);
+                        _originalError.apply(console, args);
                     };
                     
                     console.info = function(...args) {
                         window.parent.postMessage({type: 'console', level: 'info', args: args}, '*');
-                        originalInfo.apply(console, args);
+                        _originalInfo.apply(console, args);
                     };
                     
                     // Error handler
@@ -2197,23 +2197,32 @@ let peerConnection = null;
 let dataChannel = null;
 let roomCode = null;
 let isCollabConnected = false;
+let peer = null;
+let conn = null;
 
 function openCollabModal() {
     const modal = document.getElementById('collabModal');
-    modal.classList.add('active');
+    if (modal) {
+        modal.classList.add('active');
+    }
 }
 
 function closeCollabModal() {
     const modal = document.getElementById('collabModal');
-    modal.classList.remove('active');
+    if (modal) {
+        modal.classList.remove('active');
+    }
 }
 
 function switchCollabTab(tab) {
     document.querySelectorAll('.collab-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.collab-panel').forEach(p => p.classList.remove('active'));
     
-    document.querySelector(`.collab-tab[onclick="switchCollabTab('${tab}')"]`).classList.add('active');
-    document.getElementById(`${tab}Panel`).classList.add('active');
+    const tabBtn = document.querySelector(`.collab-tab[onclick*="${tab}"]`);
+    const panel = document.getElementById(`${tab}Panel`);
+    
+    if (tabBtn) tabBtn.classList.add('active');
+    if (panel) panel.classList.add('active');
 }
 
 // ==================== BROADCAST CHANNEL (Same Browser Tabs) ====================
@@ -2322,8 +2331,6 @@ function getTabId() {
 }
 
 // ==================== WEBRTC P2P COLLABORATION (Using PeerJS) ====================
-let peer = null;
-let conn = null;
 
 function generateRoomCode() {
     return Math.random().toString(36).substr(2, 6).toUpperCase() + 
@@ -2333,73 +2340,112 @@ function generateRoomCode() {
 function createCollabRoom() {
     // Check if PeerJS is loaded
     if (typeof Peer === 'undefined') {
-        showCollabStatus('webrtc', 'Loading PeerJS library... Please try again in a moment.', 'info');
-        // Try to load PeerJS dynamically
+        showCollabStatus('webrtc', 'Loading PeerJS library... Please wait.', 'info');
         loadPeerJS().then(() => {
             showCollabStatus('webrtc', 'PeerJS loaded! Click Create Room again.', 'success');
+        }).catch(err => {
+            showCollabStatus('webrtc', 'Failed to load PeerJS. Please refresh the page.', 'error');
+            console.error('PeerJS load error:', err);
         });
         return;
     }
     
-    roomCode = generateRoomCode();
-    
-    // Create PeerJS peer with room code as ID
-    peer = new Peer(roomCode, {
-        debug: 2
-    });
-    
-    peer.on('open', (id) => {
-        document.getElementById('roomCodeDisplay').style.display = 'block';
-        document.getElementById('roomCode').textContent = id;
-        showCollabStatus('webrtc', `Room created! Share code: ${id}`, 'success');
-    });
-    
-    peer.on('connection', (connection) => {
-        conn = connection;
-        setupPeerConnection();
-        showCollabStatus('webrtc', 'Peer connected! Start collaborating.', 'success');
-    });
-    
-    peer.on('error', (err) => {
-        console.error('PeerJS error:', err);
-        showCollabStatus('webrtc', `Error: ${err.type} - ${err.message || 'Unknown error'}`, 'error');
-    });
+    try {
+        roomCode = generateRoomCode();
+        
+        // Create PeerJS peer with room code as ID
+        peer = new Peer(roomCode, {
+            debug: 1,
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            }
+        });
+        
+        peer.on('open', (id) => {
+            const display = document.getElementById('roomCodeDisplay');
+            const codeEl = document.getElementById('roomCode');
+            if (display && codeEl) {
+                display.style.display = 'block';
+                codeEl.textContent = id;
+            }
+            showCollabStatus('webrtc', `✅ Room created! Share code: ${id}`, 'success');
+        });
+        
+        peer.on('connection', (connection) => {
+            conn = connection;
+            setupPeerConnection();
+            showCollabStatus('webrtc', '✅ Peer connected! Start collaborating.', 'success');
+        });
+        
+        peer.on('error', (err) => {
+            console.error('PeerJS error:', err);
+            showCollabStatus('webrtc', `❌ Error: ${err.type} - ${err.message || 'Connection failed'}`, 'error');
+        });
+    } catch (err) {
+        console.error('Failed to create room:', err);
+        showCollabStatus('webrtc', '❌ Failed to create room. Please try again.', 'error');
+    }
 }
 
 function joinCollabRoom() {
     // Check if PeerJS is loaded
     if (typeof Peer === 'undefined') {
-        showCollabStatus('webrtc', 'Loading PeerJS library... Please try again in a moment.', 'info');
+        showCollabStatus('webrtc', 'Loading PeerJS library... Please wait.', 'info');
         loadPeerJS().then(() => {
             showCollabStatus('webrtc', 'PeerJS loaded! Try joining again.', 'success');
+        }).catch(err => {
+            showCollabStatus('webrtc', 'Failed to load PeerJS. Please refresh the page.', 'error');
+            console.error('PeerJS load error:', err);
         });
         return;
     }
     
-    const code = document.getElementById('joinRoomCode').value.trim().toUpperCase();
-    
-    if (!code || code.length !== 12) {
-        showCollabStatus('webrtc', 'Please enter a valid 12-character room code', 'error');
+    const codeInput = document.getElementById('joinRoomCode');
+    if (!codeInput) {
+        console.error('Join room code input not found');
         return;
     }
     
-    // Create peer and connect to room
-    peer = new Peer();
+    const code = codeInput.value.trim().toUpperCase();
     
-    peer.on('open', () => {
-        conn = peer.connect(code, { reliable: true });
-        setupPeerConnection();
-        showCollabStatus('webrtc', 'Connecting to room...', 'info');
-    });
+    if (!code || code.length !== 12) {
+        showCollabStatus('webrtc', '❌ Please enter a valid 12-character room code', 'error');
+        return;
+    }
     
-    peer.on('error', (err) => {
-        console.error('PeerJS error:', err);
-        if (err.type === 'peer-unavailable') {
-            showCollabStatus('webrtc', 'Room not found. Check the code and make sure the room is still open.', 'error');
-        } else {
-            showCollabStatus('webrtc', `Error: ${err.type} - ${err.message || 'Unknown error'}`, 'error');
-        }
-    });
+    try {
+        // Create peer and connect to room
+        peer = new Peer({
+            debug: 1,
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            }
+        });
+        
+        peer.on('open', () => {
+            showCollabStatus('webrtc', '🔄 Connecting to room...', 'info');
+            conn = peer.connect(code, { reliable: true });
+            setupPeerConnection();
+        });
+        
+        peer.on('error', (err) => {
+            console.error('PeerJS error:', err);
+            if (err.type === 'peer-unavailable') {
+                showCollabStatus('webrtc', '❌ Room not found. Check the code and make sure the room is still open.', 'error');
+            } else {
+                showCollabStatus('webrtc', `❌ Error: ${err.type} - ${err.message || 'Connection failed'}`, 'error');
+            }
+        });
+    } catch (err) {
+        console.error('Failed to join room:', err);
+        showCollabStatus('webrtc', '❌ Failed to join room. Please try again.', 'error');
+    }
 }
 
 function setupPeerConnection() {
@@ -2524,10 +2570,13 @@ function copyRoomCode() {
 }
 
 function showCollabStatus(panel, message, type) {
-    const status = document.getElementById(`${panel}Status`);
+    const statusId = panel === 'webrtc' ? 'collabStatus' : 'broadcastStatus';
+    const status = document.getElementById(statusId);
     if (status) {
         status.textContent = message;
         status.className = `collab-status ${type}`;
+    } else {
+        console.warn(`Status element ${statusId} not found`);
     }
 }
 
