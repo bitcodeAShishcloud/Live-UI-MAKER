@@ -253,41 +253,140 @@
 
     <!-- Info Modal -->
     <div class="modal-overlay" id="infoModal">
-        <div class="modal">
+        <div class="modal info-modal">
             <div class="modal-header">
                 <h3><i class="fas fa-circle-info"></i> Quick Guide</h3>
                 <button class="icon-btn" type="button" aria-label="Close info modal" onclick="closeInfoModal()">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="info-grid">
-                <div class="info-block">
-                    <h4><i class="fas fa-keyboard"></i> Shortcuts</h4>
-                    <ul>
-                        <li>Run: Ctrl/Cmd + S or Ctrl/Cmd + Enter</li>
-                        <li>Toggle preview: Ctrl/Cmd + Shift + P</li>
-                        <li>Format file: Ctrl/Cmd + Shift + F</li>
-                        <li>Toggle sidebar: Ctrl/Cmd + B</li>
-                        <li>Refresh preview: F5</li>
+            
+            <div class="info-content">
+                <!-- Features Section -->
+                <div class="info-section">
+                    <h4><i class="fas fa-star"></i> Features</h4>
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <i class="fas fa-code"></i>
+                            <span><strong>Multi-Language:</strong> HTML, CSS, JS, Python, JSON, Markdown</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-eye"></i>
+                            <span><strong>Live Preview:</strong> Real-time code execution</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-terminal"></i>
+                            <span><strong>Console:</strong> View logs, errors, and outputs</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-moon"></i>
+                            <span><strong>Theme:</strong> Dark/Light mode toggle</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-users"></i>
+                            <span><strong>Collaboration:</strong> Real-time code sharing</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-file-zipper"></i>
+                            <span><strong>Export:</strong> Download as ZIP or individual files</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Desktop Guide -->
+                <div class="info-section desktop-only">
+                    <h4><i class="fas fa-desktop"></i> Desktop Guide</h4>
+                    <ul class="guide-list">
+                        <li><i class="fas fa-folder"></i> <strong>Sidebar:</strong> Click Files icon to open/close sidebar</li>
+                        <li><i class="fas fa-plus"></i> <strong>New File:</strong> Click "+ New File" button in sidebar</li>
+                        <li><i class="fas fa-file-import"></i> <strong>Import:</strong> Click Import icon or drag files into editor</li>
+                        <li><i class="fas fa-play"></i> <strong>Run Code:</strong> Click Run button or press Ctrl/Cmd + S</li>
+                        <li><i class="fas fa-arrows-left-right"></i> <strong>Resize:</strong> Drag the vertical bars to resize panels</li>
+                        <li><i class="fas fa-download"></i> <strong>Export File:</strong> Hover on tab, click download icon</li>
+                        <li><i class="fas fa-terminal"></i> <strong>Console:</strong> Click terminal icon to toggle console</li>
                     </ul>
                 </div>
-                <div class="info-block">
-                    <h4><i class="fas fa-route"></i> Guide</h4>
-                    <ul>
-                        <li>Create/import files in the sidebar.</li>
-                        <li>Use tabs to edit; Run or Refresh to update preview.</li>
-                        <li>Console button shows logs/errors from preview.</li>
-                        <li>Markdown files auto-open a live MD preview tab.</li>
-                        <li>Export icon on tabs downloads the file.</li>
+
+                <!-- Mobile Guide -->
+                <div class="info-section mobile-only">
+                    <h4><i class="fas fa-mobile-screen"></i> Mobile Guide</h4>
+                    <ul class="guide-list">
+                        <li><i class="fas fa-folder-open"></i> <strong>Sidebar:</strong> Tap floating button (bottom-left) to open files</li>
+                        <li><i class="fas fa-plus"></i> <strong>New File:</strong> Open sidebar → tap "+ New File"</li>
+                        <li><i class="fas fa-play"></i> <strong>Run Code:</strong> Tap Run button in header</li>
+                        <li><i class="fas fa-arrows-up-down"></i> <strong>Switch Mode:</strong> Toggle Manual/Auto run mode</li>
+                        <li><i class="fas fa-scroll"></i> <strong>Scroll:</strong> Swipe horizontally on header buttons</li>
+                        <li><i class="fas fa-terminal"></i> <strong>Console:</strong> Tap terminal icon to show/hide console</li>
+                        <li><i class="fas fa-download"></i> <strong>Export:</strong> Tap download icon on file tabs</li>
                     </ul>
                 </div>
-                <div class="info-block">
-                    <h4><i class="fas fa-user-astronaut"></i> About Maker</h4>
-                    <p>Built by Ashish Gupta.</p>
+
+                <!-- Keyboard Shortcuts -->
+                <div class="info-section">
+                    <h4><i class="fas fa-keyboard"></i> Keyboard Shortcuts</h4>
+                    <div class="shortcuts-grid">
+                        <div class="shortcut-item">
+                            <kbd>Ctrl/Cmd + S</kbd>
+                            <span>Run Code</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl/Cmd + Enter</kbd>
+                            <span>Run Code</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl/Cmd + Shift + F</kbd>
+                            <span>Format Code</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl/Cmd + Shift + P</kbd>
+                            <span>Toggle Preview</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl/Cmd + B</kbd>
+                            <span>Toggle Sidebar</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>F5</kbd>
+                            <span>Refresh Preview</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl/Cmd + Z</kbd>
+                            <span>Undo</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl/Cmd + Shift + Z</kbd>
+                            <span>Redo</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tips & Tricks -->
+                <div class="info-section">
+                    <h4><i class="fas fa-lightbulb"></i> Tips & Tricks</h4>
+                    <ul class="tips-list">
+                        <li><i class="fas fa-bolt"></i> Use <strong>Auto Run</strong> mode for instant preview updates</li>
+                        <li><i class="fas fa-code"></i> Use <strong>Code Snippets</strong> for quick templates</li>
+                        <li><i class="fas fa-users"></i> Share code in real-time with <strong>Collaboration</strong></li>
+                        <li><i class="fas fa-file-zipper"></i> Export entire project as ZIP for backup</li>
+                        <li><i class="fas fa-indent"></i> Format code automatically with Format button</li>
+                        <li><i class="fas fa-expand"></i> Double-click resizers to reset panel sizes</li>
+                    </ul>
+                </div>
+
+                <!-- About Section -->
+                <div class="info-section about-section">
+                    <h4><i class="fas fa-user-astronaut"></i> About</h4>
+                    <p>Built with ❤️ by <strong>Ashish Gupta</strong></p>
                     <div class="link-list">
-                        <a href="https://bitcodeashishcloud.github.io/Ashish-Gupta/" target="_blank" rel="noopener" class="pill-link"><i class="fas fa-globe"></i> Portfolio</a>
-                        <a href="https://github.com/bitcodeAShishcloud" target="_blank" rel="noopener" class="pill-link"><i class="fab fa-github"></i> GitHub</a>
-                        <a href="https://www.linkedin.com/in/ashish-gupta-037973259/" target="_blank" rel="noopener" class="pill-link"><i class="fab fa-linkedin"></i> LinkedIn</a>
+                        <a href="https://bitcodeashishcloud.github.io/Ashish-Gupta/" target="_blank" rel="noopener" class="pill-link">
+                            <i class="fas fa-globe"></i> Portfolio
+                        </a>
+                        <a href="https://github.com/bitcodeAShishcloud" target="_blank" rel="noopener" class="pill-link">
+                            <i class="fab fa-github"></i> GitHub
+                        </a>
+                        <a href="https://www.linkedin.com/in/ashish-gupta-037973259/" target="_blank" rel="noopener" class="pill-link">
+                            <i class="fab fa-linkedin"></i> LinkedIn
+                        </a>
                     </div>
                 </div>
             </div>

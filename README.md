@@ -6,6 +6,15 @@ A powerful in-browser code playground with **real-time collaboration**, theme sw
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-active-success)
 
+## 🌐 Live Demo
+
+Try it now - no installation required!
+
+- **GitHub Pages**: [https://bitcodeashishcloud.github.io/live-code/](https://bitcodeashishcloud.github.io/live-code/)
+- **Vercel** (Recommended for Collaboration): [https://live-code-nine.vercel.app/](https://live-code-nine.vercel.app/)
+
+> **Note:** For WebRTC collaboration features, use the Vercel deployment as it supports HTTPS.
+
 ## ✨ Features
 
 ### 🎨 **Core Features**

@@ -334,6 +334,12 @@ function init() {
     restoreStateFromStorage();
     applyTheme(state.theme);
     applySidebarWidth(state.sidebarWidth);
+    
+    // Always close sidebar on desktop/laptop (> 1024px)
+    if (window.innerWidth > 1024) {
+        state.sidebarVisible = false;
+    }
+    
     switchSidebarTab(state.activeSidebarTab, true);
     renderFileTabs();
     renderEditorTabs();
@@ -1392,55 +1398,83 @@ function applyConsoleHeight() {
 
 function setupConsoleResizer() {
     if (!consoleResizer) return;
-    let isResizing = false;
-    let startY = 0;
-    let startHeight = DEFAULT_CONSOLE_HEIGHT;
+    
+    let isActive = false;
+    let initialY = 0;
+    let initialHeight = DEFAULT_CONSOLE_HEIGHT;
 
-    consoleResizer.addEventListener('mousedown', (e) => {
+    function handleMouseDown(event) {
         if (!state.consoleVisible) return;
-        isResizing = true;
-        startY = e.clientY;
-        startHeight = state.consoleHeight || DEFAULT_CONSOLE_HEIGHT;
-        document.body.style.cursor = 'row-resize';
+        
+        isActive = true;
+        initialY = event.pageY;
+        initialHeight = state.consoleHeight || DEFAULT_CONSOLE_HEIGHT;
+        
         consoleResizer.classList.add('active');
-        showConsoleHint(startHeight);
-        e.preventDefault();
-    });
+        document.body.classList.add('resizing');
+        showConsoleHint(initialHeight);
+        
+        event.preventDefault();
+        event.stopPropagation();
+    }
 
-    document.addEventListener('mousemove', (e) => {
-        if (!isResizing || !state.consoleVisible) return;
-        const delta = startY - e.clientY;
-        const target = startHeight + delta;
+    function handleMouseMove(event) {
+        if (!isActive) return;
+        
+        const currentY = event.pageY;
+        const diffY = initialY - currentY; // Inverted for natural feel
+        
+        let newHeight = initialHeight + diffY;
+        
+        // Limit between min and max
         const maxHeight = getConsoleMaxHeight();
-        const newHeight = Math.max(CONSOLE_MIN_HEIGHT, Math.min(maxHeight, target));
+        if (newHeight < CONSOLE_MIN_HEIGHT) newHeight = CONSOLE_MIN_HEIGHT;
+        if (newHeight > maxHeight) newHeight = maxHeight;
+        
         state.consoleHeight = newHeight;
-        applyConsoleHeight();
-    });
+        
+        // Apply height directly
+        consolePanel.style.setProperty('--console-height', newHeight + 'px');
+        consolePanel.style.height = newHeight + 'px';
+        
+        showConsoleHint(newHeight);
+    }
 
-    document.addEventListener('mouseup', () => {
-        if (!isResizing) return;
-        isResizing = false;
-        document.body.style.cursor = 'default';
+    function handleMouseUp() {
+        if (!isActive) return;
+        
+        isActive = false;
         consoleResizer.classList.remove('active');
+        document.body.classList.remove('resizing');
         hideConsoleHint();
+        
         schedulePersistState();
-    });
+    }
 
-    consoleResizer.addEventListener('dblclick', () => {
-        state.consoleHeight = Math.min(getConsoleMaxHeight(), DEFAULT_CONSOLE_HEIGHT);
+    function handleDoubleClick() {
+        state.consoleHeight = DEFAULT_CONSOLE_HEIGHT;
         applyConsoleHeight();
         schedulePersistState();
-    });
+        showToast('Console reset to default', 'info');
+    }
 
+    consoleResizer.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    consoleResizer.addEventListener('dblclick', handleDoubleClick);
+
+    // Keyboard controls
     consoleResizer.addEventListener('keydown', (e) => {
         if (!state.consoleVisible) return;
-        const fast = e.shiftKey;
+        
+        const step = e.shiftKey ? CONSOLE_KEYSTEP_FAST : CONSOLE_KEYSTEP;
+        
         if (e.key === 'ArrowUp') {
             e.preventDefault();
-            adjustConsoleHeightBy(fast ? CONSOLE_KEYSTEP_FAST : CONSOLE_KEYSTEP);
+            adjustConsoleHeightBy(step);
         } else if (e.key === 'ArrowDown') {
             e.preventDefault();
-            adjustConsoleHeightBy(fast ? -CONSOLE_KEYSTEP_FAST : -CONSOLE_KEYSTEP);
+            adjustConsoleHeightBy(-step);
         } else if (e.key === 'Home') {
             e.preventDefault();
             state.consoleHeight = CONSOLE_MIN_HEIGHT;
@@ -1453,9 +1487,7 @@ function setupConsoleResizer() {
             schedulePersistState();
         } else if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            state.consoleHeight = Math.min(getConsoleMaxHeight(), DEFAULT_CONSOLE_HEIGHT);
-            applyConsoleHeight();
-            schedulePersistState();
+            handleDoubleClick();
         }
     });
 }
@@ -1765,68 +1797,141 @@ function clearAll() {
 
 // ==================== RESIZER (Editor/Preview) ====================
 function setupResizer() {
-    let isResizing = false;
+    if (!mainResizer) return;
+    
+    let isActive = false;
+    let initialX = 0;
+    let initialEditorPercent = 50;
 
-    mainResizer.addEventListener('mousedown', () => {
+    function handleMouseDown(event) {
         if (!state.previewVisible) return;
-        isResizing = true;
-        document.body.style.cursor = 'col-resize';
-        mainResizer.style.background = 'var(--accent)';
-    });
-
-    document.addEventListener('mousemove', (e) => {
-        if (!isResizing || !state.previewVisible) return;
         
-        const containerWidth = document.querySelector('.main-container').clientWidth;
-        const sidebarWidth = getLeftSidebarWidth();
-        const availableWidth = containerWidth - sidebarWidth;
-        if (availableWidth <= 0) return;
-
-        const newEditorWidth = (((e.clientX - sidebarWidth) / availableWidth) * 100);
+        isActive = true;
+        initialX = event.pageX;
         
-        if (newEditorWidth > 20 && newEditorWidth < 80) {
-            editorArea.style.width = `${newEditorWidth}%`;
-            previewArea.style.width = `${100 - newEditorWidth}%`;
-            state.previewWidthPercent = 100 - newEditorWidth;
-        }
-    });
+        // Calculate current editor percentage
+        const container = document.querySelector('.main-container');
+        const totalWidth = container.offsetWidth - getLeftSidebarWidth();
+        initialEditorPercent = (editorArea.offsetWidth / totalWidth) * 100;
+        
+        mainResizer.classList.add('active');
+        document.body.classList.add('resizing');
+        
+        event.preventDefault();
+        event.stopPropagation();
+    }
 
-    document.addEventListener('mouseup', () => {
-        isResizing = false;
-        document.body.style.cursor = 'default';
-        mainResizer.style.background = 'var(--border-color)';
-    });
+    function handleMouseMove(event) {
+        if (!isActive) return;
+        
+        const container = document.querySelector('.main-container');
+        const totalWidth = container.offsetWidth - getLeftSidebarWidth();
+        
+        const currentX = event.pageX;
+        const diffX = currentX - initialX;
+        const diffPercent = (diffX / totalWidth) * 100;
+        
+        let newEditorPercent = initialEditorPercent + diffPercent;
+        
+        // Limit between 25% and 75%
+        if (newEditorPercent < 25) newEditorPercent = 25;
+        if (newEditorPercent > 75) newEditorPercent = 75;
+        
+        const newPreviewPercent = 100 - newEditorPercent;
+        
+        editorArea.style.width = newEditorPercent + '%';
+        previewArea.style.width = newPreviewPercent + '%';
+        
+        state.previewWidthPercent = newPreviewPercent;
+    }
 
-    mainResizer.addEventListener('dblclick', () => {
-        if (!state.previewVisible) return;
+    function handleMouseUp() {
+        if (!isActive) return;
+        
+        isActive = false;
+        mainResizer.classList.remove('active');
+        document.body.classList.remove('resizing');
+        
+        schedulePersistState();
+    }
+
+    function handleDoubleClick() {
+        editorArea.style.width = '50%';
+        previewArea.style.width = '50%';
         state.previewWidthPercent = 50;
-        applyPreviewLayout();
-    });
+        schedulePersistState();
+        showToast('Reset to 50/50 split', 'info');
+    }
+
+    mainResizer.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    mainResizer.addEventListener('dblclick', handleDoubleClick);
 }
 
 // ==================== RESIZER (Sidebar) ====================
 function setupSidebarResizer() {
-    let isResizing = false;
+    if (!sidebarResizer) return;
+    
+    let isActive = false;
+    let initialX = 0;
+    let initialWidth = 250;
 
-    sidebarResizer.addEventListener('mousedown', () => {
+    function handleMouseDown(event) {
         if (!state.sidebarVisible) return;
-        isResizing = true;
-        document.body.style.cursor = 'col-resize';
+        
+        isActive = true;
+        initialX = event.pageX;
+        initialWidth = state.sidebarWidth;
+        
         sidebarResizer.classList.add('active');
-    });
+        document.body.classList.add('resizing');
+        
+        event.preventDefault();
+        event.stopPropagation();
+    }
 
-    document.addEventListener('mousemove', (e) => {
-        if (!isResizing) return;
-        const panelWidth = e.clientX - ACTIVITY_BAR_WIDTH;
-        applySidebarWidth(panelWidth);
-    });
+    function handleMouseMove(event) {
+        if (!isActive) return;
+        
+        const currentX = event.pageX;
+        const diffX = currentX - initialX;
+        
+        let newWidth = initialWidth + diffX;
+        
+        // Limit between min and max
+        if (newWidth < SIDEBAR_MIN_WIDTH) newWidth = SIDEBAR_MIN_WIDTH;
+        if (newWidth > SIDEBAR_MAX_WIDTH) newWidth = SIDEBAR_MAX_WIDTH;
+        
+        state.sidebarWidth = newWidth;
+        
+        // Apply width directly
+        const totalWidth = ACTIVITY_BAR_WIDTH + newWidth;
+        leftSidebar.style.width = totalWidth + 'px';
+        sidebar.style.width = newWidth + 'px';
+    }
 
-    document.addEventListener('mouseup', () => {
-        if (!isResizing) return;
-        isResizing = false;
-        document.body.style.cursor = 'default';
+    function handleMouseUp() {
+        if (!isActive) return;
+        
+        isActive = false;
         sidebarResizer.classList.remove('active');
-    });
+        document.body.classList.remove('resizing');
+        
+        schedulePersistState();
+    }
+
+    function handleDoubleClick() {
+        state.sidebarWidth = 250;
+        applySidebarLayout();
+        schedulePersistState();
+        showToast('Sidebar reset to default', 'info');
+    }
+
+    sidebarResizer.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    sidebarResizer.addEventListener('dblclick', handleDoubleClick);
 }
 
 // ==================== KEYBOARD SHORTCUTS ====================
