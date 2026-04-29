@@ -127,6 +127,39 @@ const state = {
     theme: 'dark'
 };
 
+// CodeMirror editor instances
+const editorInstances = new Map();
+let codeMirrorLoaded = false;
+
+// Wait for CodeMirror to load
+if (window.codeMirrorReady) {
+    codeMirrorLoaded = true;
+} else {
+    window.addEventListener('codemirror-ready', () => {
+        codeMirrorLoaded = true;
+        // Re-render editors with CodeMirror
+        if (state.files && state.files.length > 0) {
+            renderEditors();
+        }
+    });
+}
+
+// Get language mode for CodeMirror
+function getLanguageMode(type) {
+    if (!window.CodeMirror) return null;
+    
+    const modes = {
+        'html': window.CodeMirror.html(),
+        'css': window.CodeMirror.css(),
+        'js': window.CodeMirror.javascript(),
+        'python': window.CodeMirror.python(),
+        'json': window.CodeMirror.json(),
+        'markdown': window.CodeMirror.markdown()
+    };
+    
+    return modes[type] || null;
+}
+
 // Language configurations
 const languageConfig = {
     html: { icon: 'fa-html5', color: 'var(--html-color)', extension: '.html', tabSize: 4 },
@@ -343,9 +376,11 @@ function init() {
     switchSidebarTab(state.activeSidebarTab, true);
     renderFileTabs();
     renderEditorTabs();
+    setupEditorTabsEvents();
     renderEditors();
     setupAutoRun();
     setupConsoleIntercept();
+    setupConsoleInput();
     updatePreview();
     applyPreviewLayout();
     applyConsoleHeight();
@@ -374,6 +409,15 @@ function init() {
     
     // Select default file type
     selectFileType(state.selectedFileType || 'html');
+    
+    // Attempt to reconnect to collaboration session if exists
+    const session = getCollabSession();
+    if (session) {
+        setTimeout(() => {
+            showToast('Reconnecting to collaboration session...', 'info');
+            manualReconnect();
+        }, 1000);
+    }
 }
 
 // ==================== FILE TYPE SELECTION ====================
@@ -621,10 +665,14 @@ function renderEditorTabs() {
              role="tab"
              aria-selected="${file.id === state.activeFileId}"
              tabindex="${file.id === state.activeFileId ? '0' : '-1'}"
+             data-file-id="${file.id}"
              onclick="switchFile(${file.id})">
             <i class="fab ${getLanguageIcon(file.type)}" 
                style="color: ${getLanguageColor(file.type)};"></i>
-            <span>${file.name}</span>
+            <span class="file-name-editable" 
+                  data-file-id="${file.id}"
+                  ondblclick="event.stopPropagation(); startRenameFile(${file.id})"
+                  title="Double-click or press F2 to rename">${file.name}</span>
             <i class="fas fa-download close-editor-tab" 
                title="Export file"
                onclick="event.stopPropagation(); exportFile(${file.id})"></i>
@@ -632,6 +680,94 @@ function renderEditorTabs() {
                onclick="event.stopPropagation(); closeEditorTab(${file.id})"></i>
         </div>
     `).join('');
+}
+
+// Setup editor tabs event delegation (call once on init) - Backup method
+function setupEditorTabsEvents() {
+    // Use event delegation for double-click as backup
+    editorTabsContainer.addEventListener('dblclick', function(e) {
+        // Check if we clicked on the file name span
+        if (e.target.classList.contains('file-name-editable')) {
+            e.stopPropagation();
+            const fileId = parseInt(e.target.getAttribute('data-file-id'));
+            if (fileId) {
+                startRenameFile(fileId);
+            }
+        }
+    });
+}
+
+function startRenameFile(fileId) {
+    const file = state.files.find(f => f.id === fileId);
+    if (!file) return;
+    
+    // Find the span element for this file
+    const span = document.querySelector(`.file-name-editable[data-file-id="${fileId}"]`);
+    if (!span) return;
+    
+    const currentName = file.name;
+    const lastDotIndex = currentName.lastIndexOf('.');
+    const nameWithoutExt = lastDotIndex > 0 ? currentName.substring(0, lastDotIndex) : currentName;
+    const ext = lastDotIndex > 0 ? currentName.substring(lastDotIndex) : '';
+    
+    // Create input element
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = nameWithoutExt;
+    input.className = 'rename-input';
+    input.setAttribute('data-file-id', fileId);
+    input.onclick = (e) => e.stopPropagation();
+    
+    // Replace span with input
+    span.replaceWith(input);
+    input.focus();
+    input.select();
+    
+    let isFinishing = false;
+    
+    const finishRename = () => {
+        if (isFinishing) return;
+        isFinishing = true;
+        
+        const newName = input.value.trim();
+        if (newName && newName !== nameWithoutExt) {
+            const fullNewName = newName + ext;
+            
+            // Check for duplicate names
+            const duplicate = state.files.find(f => f.id !== fileId && f.name === fullNewName);
+            if (duplicate) {
+                showToast('A file with this name already exists', 'error');
+            } else {
+                file.name = fullNewName;
+                schedulePersistState();
+                showToast(`Renamed to ${fullNewName}`, 'success');
+            }
+        }
+        
+        // Re-render to restore normal state
+        renderEditorTabs();
+        renderFileTabs();
+    };
+    
+    const cancelRename = () => {
+        if (isFinishing) return;
+        isFinishing = true;
+        renderEditorTabs();
+        renderFileTabs();
+    };
+    
+    input.addEventListener('blur', finishRename);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            finishRename();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            cancelRename();
+        }
+    });
 }
 
 function closeEditorTab(fileId) {
@@ -660,25 +796,97 @@ function exportFile(fileId) {
 
 // ==================== EDITORS ====================
 function renderEditors() {
-    editorContent.innerHTML = state.files.map(file => `
-        <div class="code-editor ${file.id === state.activeFileId ? 'active' : ''}" 
-             id="editor-${file.id}">
-            <div class="editor-wrapper">
-                <div class="line-numbers" id="lines-${file.id}"></div>
-                <textarea id="code-${file.id}" 
-                          data-type="${file.type}"
-                          oninput="updateLineNumbers(${file.id}); onCodeChange(${file.id})"
-                          onscroll="syncScroll(${file.id})"
-                          onkeydown="handleTabKey(event, ${file.id})"
-                          spellcheck="false">${escapeHtml(file.content)}</textarea>
-            </div>
-        </div>
-    `).join('');
+    // Clear existing editors
+    editorContent.innerHTML = '';
     
+    // Dispose old CodeMirror instances
+    editorInstances.forEach((editor, fileId) => {
+        if (editor && editor.destroy) {
+            editor.destroy();
+        }
+    });
+    editorInstances.clear();
+    
+    // Create editor containers
     state.files.forEach(file => {
-        updateLineNumbers(file.id);
+        const editorDiv = document.createElement('div');
+        editorDiv.className = `code-editor ${file.id === state.activeFileId ? 'active' : ''}`;
+        editorDiv.id = `editor-${file.id}`;
+        editorContent.appendChild(editorDiv);
+        
+        // If CodeMirror is loaded, create editor instance
+        if (codeMirrorLoaded && window.CodeMirror) {
+            createCodeMirrorEditor(file.id, editorDiv);
+        } else {
+            // Fallback to textarea while CodeMirror loads
+            createFallbackEditor(file.id, editorDiv);
+        }
+        
         primeHistory(file.id, file.content);
     });
+}
+
+function createCodeMirrorEditor(fileId, container) {
+    const file = state.files.find(f => f.id === fileId);
+    if (!file) return;
+    
+    const languageMode = getLanguageMode(file.type);
+    const extensions = [
+        window.CodeMirror.basicSetup,
+        window.CodeMirror.keymap.of([window.CodeMirror.indentWithTab]),
+        window.CodeMirror.EditorView.updateListener.of((update) => {
+            if (update.docChanged) {
+                const content = update.state.doc.toString();
+                file.content = content;
+                onCodeChange(fileId);
+            }
+        })
+    ];
+    
+    // Add language mode if available
+    if (languageMode) {
+        extensions.push(languageMode);
+    }
+    
+    // Add theme based on current theme
+    if (state.theme === 'dark') {
+        extensions.push(window.CodeMirror.oneDark);
+    }
+    
+    // Add line wrapping
+    extensions.push(window.CodeMirror.EditorView.lineWrapping);
+    
+    const editorState = window.CodeMirror.EditorState.create({
+        doc: file.content,
+        extensions: extensions
+    });
+    
+    const view = new window.CodeMirror.EditorView({
+        state: editorState,
+        parent: container
+    });
+    
+    // Store instance
+    editorInstances.set(fileId, view);
+}
+
+function createFallbackEditor(fileId, container) {
+    const file = state.files.find(f => f.id === fileId);
+    if (!file) return;
+    
+    container.innerHTML = `
+        <div class="editor-wrapper">
+            <div class="line-numbers" id="lines-${fileId}"></div>
+            <textarea id="code-${fileId}" 
+                      data-type="${file.type}"
+                      oninput="updateLineNumbers(${fileId}); onCodeChange(${fileId})"
+                      onscroll="syncScroll(${fileId})"
+                      onkeydown="handleTabKey(event, ${fileId})"
+                      spellcheck="false">${escapeHtml(file.content)}</textarea>
+        </div>
+    `;
+    
+    updateLineNumbers(fileId);
 }
 
 function escapeHtml(text) {
@@ -689,7 +897,9 @@ function escapeHtml(text) {
 
 function updateLineNumbers(fileId) {
     const textarea = document.getElementById(`code-${fileId}`);
+    if (!textarea) return;
     const linesDiv = document.getElementById(`lines-${fileId}`);
+    if (!linesDiv) return;
     const lines = textarea.value.split('\n').length;
     linesDiv.innerHTML = Array(lines).fill(0).map((_, i) => i + 1).join('<br>');
 }
@@ -965,15 +1175,43 @@ function recordHistory(fileId) {
 }
 
 function applyHistoryEntry(fileId, entry) {
-    const textarea = document.getElementById(`code-${fileId}`);
-    if (!textarea) return;
     isRestoringHistory = true;
-    textarea.value = entry.content;
-    textarea.selectionStart = entry.selectionStart;
-    textarea.selectionEnd = entry.selectionEnd;
+    
+    const editor = editorInstances.get(fileId);
+    if (editor) {
+        // CodeMirror editor
+        const transaction = editor.state.update({
+            changes: {
+                from: 0,
+                to: editor.state.doc.length,
+                insert: entry.content
+            }
+        });
+        editor.dispatch(transaction);
+        
+        // Set selection
+        if (entry.selectionStart !== undefined) {
+            editor.dispatch({
+                selection: {
+                    anchor: entry.selectionStart,
+                    head: entry.selectionEnd || entry.selectionStart
+                }
+            });
+        }
+    } else {
+        // Fallback textarea
+        const textarea = document.getElementById(`code-${fileId}`);
+        if (textarea) {
+            textarea.value = entry.content;
+            textarea.selectionStart = entry.selectionStart;
+            textarea.selectionEnd = entry.selectionEnd;
+            updateLineNumbers(fileId);
+        }
+    }
+    
     const file = state.files.find(f => f.id === fileId);
     if (file) file.content = entry.content;
-    updateLineNumbers(fileId);
+    
     updatePreview();
     schedulePersistState();
     isRestoringHistory = false;
@@ -1105,7 +1343,16 @@ function onCodeChange(fileId) {
     if (isRestoringHistory) return;
     const file = state.files.find(f => f.id === fileId);
     if (file) {
-        file.content = document.getElementById(`code-${fileId}`).value;
+        // Get content from CodeMirror or textarea
+        const editor = editorInstances.get(fileId);
+        if (editor) {
+            file.content = editor.state.doc.toString();
+        } else {
+            const textarea = document.getElementById(`code-${fileId}`);
+            if (textarea) {
+                file.content = textarea.value;
+            }
+        }
     }
 
     recordHistory(fileId);
@@ -1709,6 +1956,141 @@ function clearConsole() {
     showToast('Console cleared', 'success');
 }
 
+// Console Input - Execute JavaScript code
+function setupConsoleInput() {
+    const consoleInput = document.getElementById('consoleInput');
+    if (!consoleInput) return;
+    
+    // Command history
+    const commandHistory = [];
+    let historyIndex = -1;
+    
+    consoleInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const code = consoleInput.value.trim();
+            
+            if (code) {
+                // Add to history
+                commandHistory.push(code);
+                historyIndex = commandHistory.length;
+                
+                // Display the command in console
+                logToConsole('input', code);
+                
+                // Execute the code
+                executeConsoleCode(code);
+                
+                // Clear input
+                consoleInput.value = '';
+            }
+        } else if (e.key === 'ArrowUp') {
+            // Navigate history up
+            e.preventDefault();
+            if (commandHistory.length > 0 && historyIndex > 0) {
+                historyIndex--;
+                consoleInput.value = commandHistory[historyIndex];
+            }
+        } else if (e.key === 'ArrowDown') {
+            // Navigate history down
+            e.preventDefault();
+            if (historyIndex < commandHistory.length - 1) {
+                historyIndex++;
+                consoleInput.value = commandHistory[historyIndex];
+            } else {
+                historyIndex = commandHistory.length;
+                consoleInput.value = '';
+            }
+        }
+    });
+}
+
+function executeConsoleCode(code) {
+    try {
+        // Get the preview iframe
+        const previewFrame = document.getElementById('previewFrame');
+        if (!previewFrame || !previewFrame.contentWindow) {
+            logToConsole('error', 'Preview frame not available');
+            return;
+        }
+        
+        // Execute code in the preview iframe context
+        const result = previewFrame.contentWindow.eval(code);
+        
+        // Log the result
+        if (result !== undefined) {
+            logToConsole('result', result);
+        }
+    } catch (error) {
+        logToConsole('error', error.message || String(error));
+    }
+}
+
+function logToConsole(type, content) {
+    const timestamp = new Date().toLocaleTimeString('en-US', { 
+        hour12: false, 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+    });
+    
+    let logClass = 'log';
+    let icon = '📝';
+    let displayContent = content;
+    
+    switch(type) {
+        case 'input':
+            logClass = 'info';
+            icon = '>';
+            displayContent = content;
+            break;
+        case 'result':
+            logClass = 'log';
+            icon = '←';
+            displayContent = formatConsoleOutput(content);
+            break;
+        case 'error':
+            logClass = 'error';
+            icon = '✖';
+            displayContent = content;
+            break;
+        case 'warn':
+            logClass = 'warn';
+            icon = '⚠';
+            displayContent = content;
+            break;
+        case 'info':
+            logClass = 'info';
+            icon = 'ℹ';
+            displayContent = content;
+            break;
+    }
+    
+    const logEntry = document.createElement('div');
+    logEntry.className = `console-log ${logClass}`;
+    logEntry.innerHTML = `
+        <span class="timestamp">${timestamp}</span>
+        <span>${icon}</span>
+        <span>${escapeHtml(String(displayContent))}</span>
+    `;
+    
+    consoleOutput.appendChild(logEntry);
+    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+}
+
+function formatConsoleOutput(value) {
+    if (value === null) return 'null';
+    if (value === undefined) return 'undefined';
+    if (typeof value === 'object') {
+        try {
+            return JSON.stringify(value, null, 2);
+        } catch (e) {
+            return String(value);
+        }
+    }
+    return String(value);
+}
+
 // ==================== AUTO-RUN ====================
 function setupAutoRun() {
     // Auto-run is handled by debounce on code change
@@ -1991,6 +2373,14 @@ function setupKeyboardShortcuts() {
         if (e.key === 'F5') {
             e.preventDefault();
             refreshPreview();
+        }
+        
+        // F2 - Rename active file
+        if (e.key === 'F2') {
+            e.preventDefault();
+            if (state.activeFileId) {
+                startRenameFile(state.activeFileId);
+            }
         }
         
         // Escape - Close modal
@@ -2568,12 +2958,72 @@ function getTabId() {
 
 // ==================== WEBRTC P2P COLLABORATION (Using PeerJS) ====================
 
+// Collaboration session storage
+const COLLAB_SESSION_KEY = 'collabSessionData';
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+let reconnectTimer = null;
+
+function saveCollabSession(role, code) {
+    try {
+        sessionStorage.setItem(COLLAB_SESSION_KEY, JSON.stringify({
+            role: role, // 'host' or 'guest'
+            roomCode: code,
+            timestamp: Date.now()
+        }));
+    } catch (err) {
+        console.error('Failed to save collab session:', err);
+    }
+}
+
+function getCollabSession() {
+    try {
+        const data = sessionStorage.getItem(COLLAB_SESSION_KEY);
+        if (!data) return null;
+        
+        const session = JSON.parse(data);
+        // Session expires after 1 hour
+        if (Date.now() - session.timestamp > 3600000) {
+            sessionStorage.removeItem(COLLAB_SESSION_KEY);
+            return null;
+        }
+        return session;
+    } catch (err) {
+        return null;
+    }
+}
+
+function clearCollabSession() {
+    sessionStorage.removeItem(COLLAB_SESSION_KEY);
+}
+
+function attemptReconnect() {
+    const session = getCollabSession();
+    if (!session || reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+        showCollabStatus('webrtc', '❌ Reconnection failed. Please create/join room again.', 'error');
+        clearCollabSession();
+        return;
+    }
+    
+    reconnectAttempts++;
+    showCollabStatus('webrtc', `🔄 Reconnecting... (Attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`, 'info');
+    
+    reconnectTimer = setTimeout(() => {
+        if (session.role === 'host') {
+            createCollabRoom(session.roomCode);
+        } else {
+            document.getElementById('joinRoomCode').value = session.roomCode;
+            joinCollabRoom();
+        }
+    }, 2000 * reconnectAttempts); // Exponential backoff
+}
+
 function generateRoomCode() {
     return Math.random().toString(36).substr(2, 6).toUpperCase() + 
            Math.random().toString(36).substr(2, 6).toUpperCase();
 }
 
-function createCollabRoom() {
+function createCollabRoom(existingCode = null) {
     // Check if PeerJS is loaded
     if (typeof Peer === 'undefined') {
         showCollabStatus('webrtc', 'Loading PeerJS library... Please wait.', 'info');
@@ -2587,7 +3037,7 @@ function createCollabRoom() {
     }
     
     try {
-        roomCode = generateRoomCode();
+        roomCode = existingCode || generateRoomCode();
         
         // Create PeerJS peer with room code as ID
         peer = new Peer(roomCode, {
@@ -2608,6 +3058,8 @@ function createCollabRoom() {
                 codeEl.textContent = id;
             }
             showCollabStatus('webrtc', `✅ Room created! Share code: ${id}`, 'success');
+            saveCollabSession('host', id);
+            reconnectAttempts = 0;
         });
         
         peer.on('connection', (connection) => {
@@ -2616,9 +3068,17 @@ function createCollabRoom() {
             showCollabStatus('webrtc', '✅ Peer connected! Start collaborating.', 'success');
         });
         
+        peer.on('disconnected', () => {
+            showCollabStatus('webrtc', '⚠️ Connection lost. Attempting to reconnect...', 'info');
+            attemptReconnect();
+        });
+        
         peer.on('error', (err) => {
             console.error('PeerJS error:', err);
             showCollabStatus('webrtc', `❌ Error: ${err.type} - ${err.message || 'Connection failed'}`, 'error');
+            if (err.type === 'network' || err.type === 'disconnected') {
+                attemptReconnect();
+            }
         });
     } catch (err) {
         console.error('Failed to create room:', err);
@@ -2668,6 +3128,12 @@ function joinCollabRoom() {
             showCollabStatus('webrtc', '🔄 Connecting to room...', 'info');
             conn = peer.connect(code, { reliable: true });
             setupPeerConnection();
+            saveCollabSession('guest', code);
+        });
+        
+        peer.on('disconnected', () => {
+            showCollabStatus('webrtc', '⚠️ Connection lost. Attempting to reconnect...', 'info');
+            attemptReconnect();
         });
         
         peer.on('error', (err) => {
@@ -2677,10 +3143,65 @@ function joinCollabRoom() {
             } else {
                 showCollabStatus('webrtc', `❌ Error: ${err.type} - ${err.message || 'Connection failed'}`, 'error');
             }
+            if (err.type === 'network' || err.type === 'disconnected') {
+                attemptReconnect();
+            }
         });
     } catch (err) {
         console.error('Failed to join room:', err);
         showCollabStatus('webrtc', '❌ Failed to join room. Please try again.', 'error');
+    }
+}
+
+function disconnectCollab() {
+    if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+    }
+    
+    if (conn) {
+        conn.close();
+        conn = null;
+    }
+    
+    if (peer) {
+        peer.destroy();
+        peer = null;
+    }
+    
+    isCollabConnected = false;
+    document.getElementById('collabIcon').classList.remove('connected');
+    clearCollabSession();
+    reconnectAttempts = 0;
+    
+    const display = document.getElementById('roomCodeDisplay');
+    if (display) {
+        display.style.display = 'none';
+    }
+    
+    const actions = document.getElementById('collabActions');
+    if (actions) {
+        actions.style.display = 'none';
+    }
+    
+    showCollabStatus('webrtc', 'Disconnected from collaboration session.', 'info');
+}
+
+function manualReconnect() {
+    const session = getCollabSession();
+    if (!session) {
+        showCollabStatus('webrtc', '❌ No session to reconnect. Please create or join a room.', 'error');
+        return;
+    }
+    
+    reconnectAttempts = 0;
+    showCollabStatus('webrtc', '🔄 Reconnecting...', 'info');
+    
+    if (session.role === 'host') {
+        createCollabRoom(session.roomCode);
+    } else {
+        document.getElementById('joinRoomCode').value = session.roomCode;
+        joinCollabRoom();
     }
 }
 
@@ -2691,6 +3212,13 @@ function setupPeerConnection() {
         isCollabConnected = true;
         document.getElementById('collabIcon').classList.add('connected');
         showCollabStatus('webrtc', '✅ Connected! You can now collaborate in real-time.', 'success');
+        reconnectAttempts = 0;
+        
+        // Show disconnect/reconnect buttons
+        const actions = document.getElementById('collabActions');
+        if (actions) {
+            actions.style.display = 'block';
+        }
         
         // Send current state
         sendCollabMessage({
@@ -2710,6 +3238,11 @@ function setupPeerConnection() {
         isCollabConnected = false;
         document.getElementById('collabIcon').classList.remove('connected');
         showCollabStatus('webrtc', 'Disconnected from peer.', 'info');
+        
+        const actions = document.getElementById('collabActions');
+        if (actions) {
+            actions.style.display = 'none';
+        }
     });
     
     conn.on('error', (err) => {
@@ -2767,10 +3300,28 @@ function handleCollabMessage(message) {
         const file = state.files.find(f => f.id === data.fileId);
         if (file) {
             file.content = data.content;
-            const textarea = document.getElementById(`code-${data.fileId}`);
-            if (textarea) {
-                textarea.value = data.content;
-                updateLineNumbers(data.fileId);
+            
+            // Update CodeMirror editor if exists
+            const editor = editorInstances.get(data.fileId);
+            if (editor) {
+                const currentContent = editor.state.doc.toString();
+                if (currentContent !== data.content) {
+                    const transaction = editor.state.update({
+                        changes: {
+                            from: 0,
+                            to: editor.state.doc.length,
+                            insert: data.content
+                        }
+                    });
+                    editor.dispatch(transaction);
+                }
+            } else {
+                // Fallback to textarea
+                const textarea = document.getElementById(`code-${data.fileId}`);
+                if (textarea) {
+                    textarea.value = data.content;
+                    updateLineNumbers(data.fileId);
+                }
             }
             updatePreview();
         }

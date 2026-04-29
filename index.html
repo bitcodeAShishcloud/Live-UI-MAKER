@@ -7,6 +7,10 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- CodeMirror 6 -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/codemirror@6.0.1/dist/index.js"></script>
+    
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -193,6 +197,15 @@
                 <div class="console-output" id="consoleOutput">
                     <!-- Console logs will appear here -->
                 </div>
+                <div class="console-input-container">
+                    <span class="console-prompt">&gt;</span>
+                    <input type="text" 
+                           id="consoleInput" 
+                           class="console-input" 
+                           placeholder="Type JavaScript code and press Enter..."
+                           spellcheck="false"
+                           autocomplete="off">
+                </div>
             </div>
         </div>
     </div>
@@ -299,11 +312,13 @@
                     <ul class="guide-list">
                         <li><i class="fas fa-folder"></i> <strong>Sidebar:</strong> Click Files icon to open/close sidebar</li>
                         <li><i class="fas fa-plus"></i> <strong>New File:</strong> Click "+ New File" button in sidebar</li>
+                        <li><i class="fas fa-edit"></i> <strong>Rename File:</strong> Double-click file name in tab to rename</li>
                         <li><i class="fas fa-file-import"></i> <strong>Import:</strong> Click Import icon or drag files into editor</li>
                         <li><i class="fas fa-play"></i> <strong>Run Code:</strong> Click Run button or press Ctrl/Cmd + S</li>
                         <li><i class="fas fa-arrows-left-right"></i> <strong>Resize:</strong> Drag the vertical bars to resize panels</li>
                         <li><i class="fas fa-download"></i> <strong>Export File:</strong> Hover on tab, click download icon</li>
                         <li><i class="fas fa-terminal"></i> <strong>Console:</strong> Click terminal icon to toggle console</li>
+                        <li><i class="fas fa-keyboard"></i> <strong>Console Input:</strong> Type JavaScript at bottom of console and press Enter</li>
                     </ul>
                 </div>
 
@@ -332,6 +347,10 @@
                         <div class="shortcut-item">
                             <kbd>Ctrl/Cmd + Enter</kbd>
                             <span>Run Code</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>F2</kbd>
+                            <span>Rename File</span>
                         </div>
                         <div class="shortcut-item">
                             <kbd>Ctrl/Cmd + Shift + F</kbd>
@@ -365,11 +384,13 @@
                     <h4><i class="fas fa-lightbulb"></i> Tips & Tricks</h4>
                     <ul class="tips-list">
                         <li><i class="fas fa-bolt"></i> Use <strong>Auto Run</strong> mode for instant preview updates</li>
+                        <li><i class="fas fa-terminal"></i> Type JavaScript in <strong>Console Input</strong> and press Enter to execute</li>
                         <li><i class="fas fa-code"></i> Use <strong>Code Snippets</strong> for quick templates</li>
                         <li><i class="fas fa-users"></i> Share code in real-time with <strong>Collaboration</strong></li>
                         <li><i class="fas fa-file-zipper"></i> Export entire project as ZIP for backup</li>
                         <li><i class="fas fa-indent"></i> Format code automatically with Format button</li>
                         <li><i class="fas fa-expand"></i> Double-click resizers to reset panel sizes</li>
+                        <li><i class="fas fa-edit"></i> Double-click file names in tabs to <strong>rename</strong> them</li>
                     </ul>
                 </div>
 
@@ -452,6 +473,15 @@
                     
                     <div id="collabStatus" class="collab-status"></div>
                     
+                    <div class="collab-section" id="collabActions" style="display:none; margin-top: 12px;">
+                        <button class="btn btn-warning" onclick="disconnectCollab()" style="margin-right: 8px;">
+                            <i class="fas fa-sign-out-alt"></i> Disconnect
+                        </button>
+                        <button class="btn btn-secondary" onclick="manualReconnect()">
+                            <i class="fas fa-redo"></i> Reconnect
+                        </button>
+                    </div>
+                    
                     <div class="collab-section" style="margin-top: 12px;">
                         <h4><i class="fas fa-info-circle"></i> How to Use</h4>
                         <ol style="margin: 8px 0 0 20px; color: var(--text-secondary); font-size: 0.85rem; line-height: 1.6;">
@@ -476,6 +506,43 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    
+    <!-- CodeMirror 6 - Load as module -->
+    <script type="module">
+        // Import CodeMirror and extensions
+        import {EditorView, basicSetup} from "https://cdn.jsdelivr.net/npm/codemirror@6.0.1/dist/index.js";
+        import {EditorState} from "https://cdn.jsdelivr.net/npm/@codemirror/state@6.4.0/dist/index.js";
+        import {javascript} from "https://cdn.jsdelivr.net/npm/@codemirror/lang-javascript@6.2.1/dist/index.js";
+        import {html} from "https://cdn.jsdelivr.net/npm/@codemirror/lang-html@6.4.7/dist/index.js";
+        import {css} from "https://cdn.jsdelivr.net/npm/@codemirror/lang-css@6.2.1/dist/index.js";
+        import {python} from "https://cdn.jsdelivr.net/npm/@codemirror/lang-python@6.1.4/dist/index.js";
+        import {json} from "https://cdn.jsdelivr.net/npm/@codemirror/lang-json@6.0.1/dist/index.js";
+        import {markdown} from "https://cdn.jsdelivr.net/npm/@codemirror/lang-markdown@6.2.4/dist/index.js";
+        import {oneDark} from "https://cdn.jsdelivr.net/npm/@codemirror/theme-one-dark@6.1.2/dist/index.js";
+        import {keymap} from "https://cdn.jsdelivr.net/npm/@codemirror/view@6.23.0/dist/index.js";
+        import {indentWithTab} from "https://cdn.jsdelivr.net/npm/@codemirror/commands@6.3.3/dist/index.js";
+        
+        // Make available globally
+        window.CodeMirror = {
+            EditorView,
+            EditorState,
+            basicSetup,
+            javascript,
+            html,
+            css,
+            python,
+            json,
+            markdown,
+            oneDark,
+            keymap,
+            indentWithTab
+        };
+        
+        // Signal that CodeMirror is ready
+        window.codeMirrorReady = true;
+        window.dispatchEvent(new Event('codemirror-ready'));
+    </script>
+    
     <script src="script.js"></script>
 </body>
 </html>

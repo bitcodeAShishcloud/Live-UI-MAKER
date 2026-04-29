@@ -104,6 +104,61 @@ select:focus-visible,
     outline-offset: 2px;
 }
 
+/* Button Styles */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Outfit', sans-serif;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+.btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-hover);
+}
+
+.btn-warning {
+    background: var(--warning);
+    color: white;
+}
+
+.btn-warning:hover {
+    background: #d97706;
+}
+
+.btn i {
+    font-size: 1rem;
+}
+
 /* Global icon improvements */
 i, .fa, .fas, .fab, .far {
     -webkit-font-smoothing: antialiased;
@@ -643,6 +698,29 @@ i, .fa, .fas, .fab, .far {
     white-space: nowrap;
 }
 
+.editor-tab .file-name-editable {
+    cursor: text;
+}
+
+.editor-tab .file-name-editable:hover {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.rename-input {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--accent);
+    color: var(--text-primary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    min-width: 80px;
+    max-width: 150px;
+}
+
 .editor-tab::before {
     content: '';
     position: absolute;
@@ -762,6 +840,42 @@ i, .fa, .fas, .fab, .far {
     display: block;
 }
 
+/* CodeMirror Styling */
+.code-editor .cm-editor {
+    height: 100%;
+    font-family: 'Fira Code', monospace;
+    font-size: 14px;
+}
+
+.code-editor .cm-scroller {
+    overflow: auto;
+    font-family: 'Fira Code', monospace;
+}
+
+.code-editor .cm-content {
+    padding: 10px 0;
+    font-family: 'Fira Code', monospace;
+}
+
+.code-editor .cm-line {
+    padding: 0 10px;
+}
+
+.code-editor .cm-gutters {
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.code-editor .cm-activeLineGutter {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.code-editor .cm-activeLine {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* Fallback textarea styling */
 .editor-wrapper {
     position: relative;
     height: 100%;
@@ -1112,6 +1226,49 @@ i, .fa, .fas, .fab, .far {
     color: var(--text-secondary);
     font-size: 0.75rem;
     white-space: nowrap;
+}
+
+/* Console Input */
+.console-input-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.console-prompt {
+    color: var(--accent);
+    font-family: 'Fira Code', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.console-input {
+    flex: 1;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: var(--text-primary);
+    font-family: 'Fira Code', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.console-input:focus {
+    border-color: var(--accent);
+    background: var(--bg-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.console-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.6;
 }
 
 /* ==================== RESIZER ==================== */
